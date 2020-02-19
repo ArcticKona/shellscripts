@@ -4,6 +4,8 @@ test "$IMPORT_DIR" == "" &&	# Root directory to import stuff from
 	IMPORT_DIR="`pwd`/"
 test "$IMPORT_URI" == "" &&	# URI to download scripts from
 	IMPORT_URI="https://shell-scripts.akona.me/"
+test "$IMPORT_VERBOSE" == "" &&	# Be quiet, or not
+	IMPORT_VERBOSE="false"
 IMPORT_ALREADY=""		# subs already considered loaded
 
 # Useful presets
@@ -29,9 +31,14 @@ function import {
 		return $?
 
 	while test $# -gt 0 ; do
+		test "$IMPORT_VERBOSE" == "true" &&
+			echo "IMPORTING $1"
+
 		# Is it already loaded?
 		local full_path="$IMPORT_DIR/$1"
 		if echo "$IMPORT_ALREADY" | grep -qxFe "$full_path" - ; then
+			test "$IMPORT_VERBOSE" == "true" &&
+				echo "$1 ALREADY IMPORTED. SKIPPING"
 			shift
 			continue
 		fi
