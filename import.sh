@@ -3,7 +3,7 @@
 test "$IMPORT_DIR" == "" &&	# Root directory to import stuff from
 	IMPORT_DIR="`pwd`/"
 test "$IMPORT_URI" == "" &&	# URI to download scripts from
-	IMPORT_URI="https://akona.me/media/"
+	IMPORT_URI="https://shell-scripts.akona.me/"
 IMPORT_ALREADY=""		# subs already considered loaded
 
 # Useful presets
