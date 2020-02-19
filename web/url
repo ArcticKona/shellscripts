@@ -1,0 +1,26 @@
+#!/bin/bash
+# URL utils. 2020 Arctic Kona. No rights reserved.
+import struct/struct
+
+# URL parser
+URL_PARSE_PROPERTY="
+scheme
+user
+host
+port
+path
+query
+fragment
+"
+URL_PARSE_METHOD="
+parse
+string
+"
+function URL_PARSE_INIT {
+
+}
+function URL_PARSE_string {
+	eval "echo \$$"
+}
+
+

@@ -1,0 +1,106 @@
+#!/bin/bash
+# Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
+import misc/argument
+import misc/default
+import misc/check
+import terminal/font
+
+alias ui_arguments='
+	local ARG_text ARG_title
+	default ARG_text="${ARG_0}"
+	default ARG_title="${ARG_1}"
+'
+
+alias ui_title='
+	[[ "${ARG_title}" != "" ]] &&
+		echo "${FONT_BOLD}${FONT_LINE}${ARG_title}${FONT_UNLINE}${FONT_UNBOLD}"
+'
+
+function ui_info {
+	argument
+	ui_arguments
+	ui_title
+
+	echo "${ARG_text}"
+	return $?
+}
+
+function ui_warning {
+	ui_arguments
+	ui_title
+
+	echo "${ARG_text}" 1>&2s
+	return $?
+}
+
+function ui_text {
+	argument
+	ui_arguments
+
+	for editor in 'less' 'more' ; do
+		if chk_cmd $editor ; then
+			(
+				test "$ARG_title" == "" ||
+					echo " >>> ${ARG_title} <<< "
+				cat - ) | \
+				$editor -
+			return $?
+		fi
+	done
+
+	ui_title
+	cat -
+	return $?
+}
+
+function ui_entry {
+	argument
+	ui_arguments
+	ui_title
+
+	printf " > "
+	head -n 1 -
+	return $?
+}
+
+function ui_edit {
+	argument
+	ui_arguments
+	ui_title
+
+	local content=$( mktemp ) ||
+		return $?
+	cat - 1> "$content" ||
+		return $?
+
+	for editor in editor nano vim vi ed ; do
+		if chk_cmd $editor ; then
+			$editor "$content"
+			rtn=$?
+			cat "$content"
+			return $rtn
+		fi
+	done
+
+	log_err "no editor found"
+	return 1
+}
+
+function ui_list {
+	argument
+	ui_arguments
+	ui_title
+
+
+	log_err "not implemented"
+}
+
+function ui_checkbox {
+	log_err "not implemented"
+}
+
+function ui_progress {
+	log_err "not implemented"
+}
+
+
