@@ -10,9 +10,10 @@ IMPORT_ALREADY=""		# subs already considered loaded
 IFS='
 '
 shopt -s expand_aliases
+shopt -s extglob
 
 # Tests if required commands are here
-for i in wget realpath grep ; do
+for i in wget grep ; do
 	if ! which $i 1>/dev/null ; then
 		printf "ERROR: COMMAND $i NOT FOUND \r\n"
 		return 1
@@ -29,27 +30,31 @@ function import {
 
 	while test $# -gt 0 ; do
 		# Is it already loaded?
-		local real_path=$( realpath "$IMPORT_DIR/$1" )
-		if echo "$IMPORT_ALREADY" | grep -qxFe "$real_path" - ; then
+		local full_path="$IMPORT_DIR/$1"
+		if echo "$IMPORT_ALREADY" | grep -qxFe "$full_path" - ; then
 			shift
 			continue
 		fi
-		IMPORT_ALREADY=$( printf "%s\n%s" "$real_path" "$IMPORT_ALREADY" )	# Record failures too
+		IMPORT_ALREADY=$( printf "%s\n%s" "$full_path" "$IMPORT_ALREADY" )	# Record failures too
 
 		# Load files if there
-		if test -f "$real_path" ; then
-			import_source "$real_path"
+		if test -f "$full_path" ; then
+			import_source "$full_path"
 			rtn=$(( $rtn + $? ))
 
-		# Or alternative name
-		elif test -f "$real_path.sh" ; then
-			import_source "$real_path.sh"
+		# Or alternative namea
+		elif test -f "$full_path.sh" ; then
+			import_source "$full_path.sh"
+			rtn=$(( $rtn + $? ))
+
+		elif test -f "$full_path.bash" ; then
+			import_source "$full_path.bash"
 			rtn=$(( $rtn + $? ))
 
 		# Load all contents if it's a directories
-		elif test -d "$real_path" ; then
-			for file in $( ls "$real_path" ) ; do
-				import "$real_path/$file"
+		elif test -d "$full_path" ; then
+			for file in $( ls "$full_path" | grep -xEe '([^.]+|.+\.sh|.+\.bash)' - ) ; do	# Helps to only load certain files
+				import "$1/$file"
 				rtn=$(( $rtn + $? ))
 			done
 
@@ -58,15 +63,19 @@ function import {
 			import_source "$load_file"
 			rtn=$(( $rtn + $? ))
 
-		# Alternative name on server?
+		# Alternative names on server?
 		elif wget -qO "$load_file" "$IMPORT_URI/$1.sh" ; then
+			import_source "$load_file"
+			rtn=$(( $rtn + $? ))
+
+		elif wget -qO "$load_file" "$IMPORT_URI/$1.bash" ; then
 			import_source "$load_file"
 			rtn=$(( $rtn + $? ))
 
 		# So it's a web directory?
 		elif wget -qO "$load_file" "$IMPORT_URI/$1/index.lst" ; then
-			for file in $( cat "$load_file" ) ; do
-				import "${1}/${file}"
+			for file in $( cat "$load_file" | grep -xEe '([^.]+|.+\.sh|.+\.bash)' - ) ; do
+				import "$1/${file}"
 				rtn=$(( $rtn + $? ))
 			done
 
@@ -81,7 +90,6 @@ function import {
 	done
 
 	rm "$load_file"
-	unset IFS
 	return $rtn
 }
 
@@ -99,7 +107,7 @@ function import_source {
 
 # Alias
 function import_import {
-	import "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
+	import "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" "${9}" "${10}" "${11}" "${12}" "${13}" "${14}" "${15}" "${16}"
 	return $?
 }
 
