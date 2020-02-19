@@ -49,14 +49,14 @@ function ui_text {
 
 	# Find an display program
 	for editor in 'less' 'more' 'cat' ; do
-		if chk_cmd $editor ; then
+		if check_command $editor ; then
 			$editor - <<< "$text"
 			return $?
 		fi
 	done
 
 	log_err "no text display program found"
-	return 
+	return
 }
 
 function ui_entry {
@@ -96,7 +96,7 @@ function ui_edit {
 
 	# Edit!
 	for editor in editor nano vim vi ed ; do
-		if chk_cmd $editor ; then
+		if check_command $editor ; then
 			$editor "$content" ||
 				return $?
 			cat "$content"

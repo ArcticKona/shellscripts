@@ -3,11 +3,11 @@
 import misc/check
 
 # If DISPLAY is set and zenity is installed, use zenity
-if [[ "$DISPLAY" ]] && chk_cmd zenity 1> /dev/null ; then
+if [[ "$DISPLAY" ]] && check_command zenity 1> /dev/null ; then
 	import "ui/zenity"
 
 # Otherwise, if dialog is installed, use it
-#elif chk_cmd dialog ; then
+#elif check_command dialog ; then
 #	import "ui/dialog"
 
 # Finally, use CLI

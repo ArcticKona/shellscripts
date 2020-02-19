@@ -6,16 +6,16 @@ import log/log
 # To lower case arguments if there or stdin, using tr awk sed or perl
 function tocase_lower {
 	if [[ $# -gt 0 ]] ; then
-		if chk_cmd tr ; then
+		if check_command tr ; then
 			tr "[:upper:]" "[:lower:]" <<< "$@"
 			return $?
-		elif chk_cmd awk ; then
+		elif check_command awk ; then
 			awk '{print tolower($0)}' <<< "$@"
 			return $?
-		elif chk_cmd sed ; then
+		elif check_command sed ; then
 			sed -e 's/\(.*\)/\L\1/' <<< "$@"
 			return $?
-		elif chk_cmd perl ; then
+		elif check_command perl ; then
 			perl -ne 'print lc' <<< "$@"
 			return $?
 		else
@@ -23,16 +23,16 @@ function tocase_lower {
 			return 1
 		fi
 	else
-		if chk_cmd tr ; then
+		if check_command tr ; then
 			tr "[:upper:]" "[:lower:]"
 			return $?
-		elif chk_cmd awk ; then
+		elif check_command awk ; then
 			awk '{print tolower($0)}'
 			return $?
-		elif chk_cmd sed ; then
+		elif check_command sed ; then
 			sed -e 's/\(.*\)/\L\1/'
 			return $?
-		elif chk_cmd perl ; then
+		elif check_command perl ; then
 			perl -ne 'print lc'
 			return $?
 		else
@@ -45,16 +45,16 @@ function tocase_lower {
 # To upper case arguments if there or stdin, using tr awk sed or perl
 function tocase_upper {
 	if [[ $# -gt 0 ]] ; then
-		if chk_cmd tr ; then
+		if check_command tr ; then
 			tr "[:lower:]" "[:upper:]" <<< "$@"
 			return $?
-		elif chk_cmd awk ; then
+		elif check_command awk ; then
 			awk '{print toupper($0)}' <<< "$@"
 			return $?
-		elif chk_cmd sed ; then
+		elif check_command sed ; then
 			sed -e 's/\(.*\)/\U\1/' <<< "$@"
 			return $?
-		elif chk_cmd perl ; then
+		elif check_command perl ; then
 			perl -ne 'print uc' <<< "$@"
 			return $?
 		else
@@ -62,16 +62,16 @@ function tocase_upper {
 			return 1
 		fi
 	else
-		if chk_cmd tr ; then
+		if check_command tr ; then
 			tr "[:lower:]" "[:upper:]"
 			return $?
-		elif chk_cmd awk ; then
+		elif check_command awk ; then
 			awk '{print toupper($0)}'
 			return $?
-		elif chk_cmd sed ; then
+		elif check_command sed ; then
 			sed -e 's/\(.*\)/\U\1/'
 			return $?
-		elif chk_cmd perl ; then
+		elif check_command perl ; then
 			perl -ne 'print uc'
 			return $?
 		else
