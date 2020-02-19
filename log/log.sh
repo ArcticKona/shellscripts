@@ -15,6 +15,8 @@ test "/"$( ps -o comm,pid | grep -Fe $$ - | cut -d \  -f 1 - ) == "/bash" &&
 	LOG_ISBASH=0
 
 function log_log {
+	local IFS=" "
+
 	# Checks arguments
 	if [[ $# -lt 2 ]] ; then
 		log_log 'err' "log_log: not enough arguments"
@@ -24,16 +26,16 @@ function log_log {
 
 	# Check call stack, create log text
 	local log_text
-	chk_true $LOG_ISBASH &&
+	check_true $LOG_ISBASH &&
 		log_text="${FONT_RED}${1}: $APPLICATION_NAME: ${FUNCNAME[*]}: ${2}${FONT_DEFAULT}" ||
 		log_text="${FONT_RED}${1}: $APPLICATION_NAME: ${2}${FONT_DEFAULT}"
 
 	# Log to terminal
-	if chk_true $LOG_TERMINAL ; then
+	if check_true $LOG_TERMINAL ; then
 		echo "$log_text" 1>&2
 
 	# Log to file
-	fi;if chk_true "$LOG_FILE" ; then
+	fi;if check_true "$LOG_FILE" ; then
 		echo "$log_text" >> "$LOG_FILE"
 		if test $? -gt 0 ; then
 			LOG_FILE="" log_log 'err' "log_log: cannot log to file $LOG_FILE"
@@ -41,7 +43,7 @@ function log_log {
 		fi
 
 	# Log to syslog
-	fi;if chk_true "$LOG_SYSLOG" && chk_cmd logger ; then
+	fi;if check_true "$LOG_SYSLOG" && check_command logger ; then
 		logger -p user."$1" "$log_text"
 		if test $? -gt 0 ; then
 			LOG_SYSLOG="false" log_log 'err' "log_log: cannot log to syslog"
