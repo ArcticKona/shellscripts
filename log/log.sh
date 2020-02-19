@@ -3,6 +3,7 @@
 import program
 import misc/default
 import misc/check
+import terminal/font
 default LOG_TERMINAL=1
 default LOG_FILE=0
 default LOG_SYSLOG=0
@@ -24,8 +25,8 @@ function log_log {
 	# Check call stack, create log text
 	local log_text
 	chk_true $LOG_ISBASH &&
-		log_text="$1: $APPLICATION_NAME: ${FUNCNAME[*]}: $2" ||
-		log_text="$1: $APPLICATION_NAME: $2"
+		log_text="${FONT_RED}${1}: $APPLICATION_NAME: ${FUNCNAME[*]}: ${2}${FONT_DEFAULT}" ||
+		log_text="${FONT_RED}${1}: $APPLICATION_NAME: ${2}${FONT_DEFAULT}"
 
 	# Log to terminal
 	if chk_true $LOG_TERMINAL ; then
@@ -42,7 +43,10 @@ function log_log {
 	# Log to syslog
 	fi;if chk_true "$LOG_SYSLOG" && chk_cmd logger ; then
 		logger -p user."$1" "$log_text"
-		rtn=$(( rtn + 1 ))
+		if test $? -gt 0 ; then
+			LOG_SYSLOG="false" log_log 'err' "log_log: cannot log to syslog"
+			rtn=$(( rtn + 1 ))
+		fi
 	fi
 }
 
