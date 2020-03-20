@@ -45,10 +45,10 @@ function check_false {
 }
 
 # Checks if it looks like a number
-function check_numebr {
+function check_number {
 	rtn=0
 	while [[ $# -gt 0 ]] ; do
-		grep -qxEe "-?[0-9]+(\.[0-9]+)?" - <<< "$1" &&
+		grep -qxEe "-?[0-9]+(\.[0-9]+)?" - <<< "$1" ||
 			rtn=$(( $rtn + 1 ))
 		shift
 	done
