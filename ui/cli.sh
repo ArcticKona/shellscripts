@@ -5,127 +5,180 @@ import misc/check
 import log/log
 import terminal/font
 
-alias ui_title='
-	[[ "${title}" != "" ]] &&
-		echo "${FONT_BOLD}${FONT_LINE}${title}${FONT_UNLINE}${FONT_UNBOLD}"
-	[[ "${text}" != "" ]] &&
-		echo "${text}"
-'
-
+# Display simple information
 function ui_info {
-	local text title
-	default text="$1"
-	default title="$2"
-
-	ui_title
+	[[ "${title}$1" != "" ]] &&
+		echo "${FONT_BOLD}${FONT_LINE}${title}$1${FONT_UNLINE}${FONT_UNBOLD}"
+	[[ "${text}$2" != "" ]] &&
+		echo "${text}$2"
 
 	return $?
 }
 
+# Display a warning
 function ui_warn {
-	local text
-	default text="$1"
-	default title="$2"
-
-	{ ui_title } 1>&2
+	ui_info 1>&2
 
 	return $?
 }
 
+# Display some text
+# First, check what is usable
+for UI_TEXT_PROGRAM in less more cat ; do
+	check_command $UI_TEXT_PROGRAM &&
+		break
+done
 function ui_text {
-	local file
-	default file="$1"
+	ui_info "$2" "$3"
 
-	# Process title and text input
-	[[ "${text}" == "" ]] &&
-		text="$( cat $file )"
-	[[ "${title}" == "" ]] ||
-		text=">>> ${title} <<<
-$text"
+	# First, check for program
+	if [[ "$UI_TEXT_PROGRAM" == "" ]] ; then
+		log_error "no text display program found"
+		return 10
+	fi
 
-	# Find an display program
-	for editor in 'less' 'more' 'cat' ; do
-		if check_command $editor ; then
-			$editor - <<< "$text"
-			return $?
-		fi
-	done
+	# If file is specified, use that
+	if [[ "${file}$1" ]] ; then
+		$UI_TEXT_PROGRAM "${file}$1"
 
-	log_err "no text display program found"
-	return
+	# Otherwise, use STDIN
+	else
+		$UI_TEXT_PROGRAM -
+		
+	fi
+	return $?
 }
 
+# Ask for a line of input
 function ui_entry {
-	ui_title
+	ui_info "$1" "$2"
 
 	printf " > "
-	if [[ "$1" == "" ]] ; then
-		head -n 1 -
-	else
-		$1=$( head -n 1 - )
-	fi
+	# If a capture variable is specified, use that
+	if [[ "${capture}$3" ]] ; then
+		read "${capture}$3"
 
+	# Otherwise, output to STDOUT
+	else
+		head -n 1 -
+
+	fi
 	return $?
 }
 
+# Edit a file
+# First, check what is usable
+for UI_EDIT_PROGRAM in editor nano vim vi ed ; do
+	check_command $UI_TEXT_PROGRAM &&
+		break
+done
 function ui_edit {
-	# Provide information to user
-	if [[ "${title}" != "" ]] || [[ "${text}" != "" ]] ; then
-		ui_title
-		echo "[ENTER]"
-		read -n 1 -s
+	ui_info "$2" "$3"
+
+	# First, check for program
+	if [[ "$UI_EDIT_PROGRAM" == "" ]] ; then
+		log_error "no text edit program found"
+		return 10
 	fi
 
+	# If file is specified, use that
+	if [[ "${file}$1" ]] ; then
+		$UI_EDIT_PROGRAM "${file}$1"
 
-	# Get STDIN or provided file
-	if [[ "${file}" == "" ]] ; then
+	# Otherwise, use STDIN. Please don't use STDIN
+	else
+		# First, create temporary file
+		local file
 		file=$( mktemp ) ||
 			return $?
-		cat - 1> "$file" ||
-			return $?
-	fi
-
-	# Edit!
-	for editor in editor nano vim vi ed ; do
-		if check_command $editor ; then
-			$editor "$file"
-			rtn=$?
-			if [[ -f "$file" ]] ; then
-				if [[ $rtn -eq 0 ]] ; then
-					cat "$file"
-					rtn=$?
-				fi
-				rm "$file"
-				return $rtn
-			fi
-			[[ $rtn -gt 0 ]] &&
-				return $rtn ||
-				return 3
+		cat - 1> $file
+		rtn=$?
+		if [[ $rtn -gt 0 ]] ; then
+			rm "$file" 2> /dev/null
+			return $rtn
 		fi
-	done
-
-	# Caveat: temp file not removed
-	log_err "no editor found"
-	return 1
+		
+		# Then edit it
+		$UI_EDIT_PROGRAM $file
+		rtn=$?
+		if [[ -f "$file" ]] ; then
+			cat "$file"
+			rm "$file" 2> /dev/null
+		fi
+		return $rtn
+		
+	fi
+	return $?
 }
 
+# Ask to select off of a list
 function ui_list {
-	ui_title
+	local reponse index
+	index=0
+	ui_info "" ""
 
-	if 
-	while true ; do
+	# NOTE: CASE AND PASTE
+	# If a list arguments was specified, use that
+	if [[ "$list" ]] ; then
+		for reponse in $list ; do
+			index=$(( $index + 1 ))
+			echo "$index $response"
+		done
+
+	# If arguments were specified, use that
+	elif [[ $# -gt 0 ]] ; then
+		while [[ $# -gt 0 ]] ; do
+			index=$(( $index + 1 ))
+			echo "$index $1"
+			shift
+		done
+
+	# If a file was specified, use that
+	elif [[ "$file" ]] ; then
+		for reponse in $( cat "$file" ) ; do
+			index=$(( $index + 1 ))
+			echo "$index $response"
+		done
+
+	# Otherwise, use STDIN
+	else
+		for reponse in $( cat - ) ; do
+			index=$(( $index + 1 ))
+			echo "$index $reponse"
+		done
 		
-	done
+	fi
 
+	# Also, get and check that response is valid
+	read -p " > " response ||
+		return $?
+	if ! check_number || [[ $response -lt 1 ]] || [[ $response -gt $index ]] ; then
+		return 10
+	fi
+
+	# If variable is specified, use that. Or use STDOUT
+	[[ "${capture}" ]] &&
+		eval "$capture=\"\$response\"" ||
+		echo "$response"
+		
 	return 0
 }
 
 function ui_checkbox {
-	log_err "not implemented"
+	log_fatal "not implemented"
 }
 
+# Progress bar
+check_command tput &&
+	UI_PROGRESS_WIDTH=$(( $( tput cols ) - 2 ))	# Please don't resize your virtual terminal
+	UI_PROGRESS_WIDTH=10
+UI_PROGRESS_DENOMINATOR=100
 function ui_progress {
-	log_err "not implemented"
+	log_fatal "not implemented"
+	
+	local bar
+	bar=$( printf "%-$(( $UI_PROGRESS_WIDTH * 0$1 / $UI_PROGRESS_DENOMINATOR ))s" "=" )
+	echo "[$bar]"
 }
 
 

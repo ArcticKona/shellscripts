@@ -4,67 +4,114 @@ import misc/argument
 import misc/default
 import log/log
 
-alias ui_arguments='
-	local ARG_text ARG_title
-	default ARG_text="${ARG_0}"
-	default ARG_title="${ARG_1}"
-'
-
+# Display simple information
 function ui_info {
-	argument
-	ui_arguments
+	zenity --info --title="${title}$2" --text="${text}$1"
 
-	zenity --info --title="${ARG_title}" --text="${ARG_text}"
 	return $?
 }
 
+# Display a warning
 function ui_warn {
-	argument
-	ui_arguments
+	zenity --error --title="${title}$2" --text="${text}$1"
 
-	zenity --error --title="${ARG_title}" --text="${ARG_text}"
 	return $?
 }
 
+# Display some text
 function ui_text {
-	argument
-	ui_arguments
+	# If a file is specified, use that
+	if [[ "${file}$1" ]] ; then
+		zenity --text-info --title="${title}$2" < "${file}$1"
 
-	zenity --entry-info --title="${ARG_title}"
+	# Else, use STDIN
+	else
+		zenity --text-info --title="${title}$2"
+
+	fi
 	return $?
 }
 
+# Ask for a line of input
 function ui_entry {
-	argument
-	ui_arguments
+	# If a capture variable is specified, use that
+	if [[ "${capture}$3" == "" ]] ; then
+		zenity --entry --title="${title}$2" --text="${text}$1" --entry-text="${entrytext}"
 
-	zenity --entry --title="${ARG_title}" --text="${ARG_text}" --entry-text="${ARG_entrytext}"
+	# Otherwise, output to STDOUT
+	else
+		eval "${capture}$3=\$( zenity --entry --title=\"\${title}\$2\" --text=\"\${text}\$1\" --entry-text=\"\${entrytext}\" )"
+
+	fi
 	return $?
 }
 
+# Edit a file
 function ui_edit {
-	argument
-	ui_arguments
+	# If a file is specified, use that
+	if [[ "${file}$1" ]] ; then
+		zenity --text-info --editable --title="${title}$2" < "${file}$1"
 
-	zenity --entry-info --editable --title="${ARG_title}"
+	# Otherwise, use STDIN
+	else
+		zenity --text-info --editable --title="${title}$2"
+
+	fi
 	return $?
 }
 
+# Ask to select off of a list
 function ui_list {
-	argument
-	ui_arguments
+	# NOTE: CASE AND PASTE
+	# If a list arguments was specified, use that
+	if [[ "$list" ]] ; then
+		if [[ "${capture}" == "" ]] ; then
+			zenity --list --title="${title}$2" --text="${text}$1" --column="" <<< "$list"
+		else
+			eval "${capture}=\$(zenity --list --title=\"\${title}\$2\" --text=\"\${text}\$1\" --column=\"\" <<< \"\$list\""
+		fi
 
-	zenity --list --title="${ARG_title}" --text="${ARG_text}" --column=""
+	# If arguments were specified, use that
+	elif [[ $# -gt 0 ]] ; then
+		local list
+		while [[ $# -gt 0 ]] ; do
+			list="$list
+$1"
+			shift
+		done
+
+		if [[ "${capture}" == "" ]] ; then
+			zenity --list --title="${title}$2" --text="${text}$1" --column="" <<< "$list"
+		else
+			eval "${capture}=\$(zenity --list --title=\"\${title}\$2\" --text=\"\${text}\$1\" --column=\"\" <<< \"\$list\""
+		fi
+
+	# If a file was specified, use that
+	elif [[ "$file" ]] ; then
+		if [[ "${capture}" == "" ]] ; then
+			zenity --list --title="${title}$2" --text="${text}$1" --column="" < "$file"
+		else
+			eval "${capture}=\$(zenity --list --title=\"\${title}\$2\" --text=\"\${text}\$1\" --column=\"\" < \"\$file\""
+		fi
+
+	# Otherwise, use STDIN
+	else
+		if [[ "${capture}" == "" ]] ; then
+			zenity --list --title="${title}$2" --text="${text}$1" --column=""
+		else
+			eval "${capture}=\$(zenity --list --title=\"\${title}\$2\" --text=\"\${text}\$1\" --column=\"\""
+		fi
+	
+	fi
 	return $?
 }
 
 function ui_checkbox {
-	log_err "Function not yet implemented"
+	log_fatal "Function not yet implemented"
 }
 
 
 function ui_progress {
-	log_err "Function not yet implemented"
-
+	log_fatal "Function not yet implemented"
 }
 

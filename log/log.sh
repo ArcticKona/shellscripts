@@ -9,11 +9,8 @@ default LOG_FILE=0
 default LOG_SYSLOG=0
 default LOG_LEVEL=warn
 
-# Check if interpreter supports feature
-test "/"$( ps -o comm,pid | grep -Fe $$ - | cut -d \  -f 1 - ) == "/bash" &&
-	LOG_ISBASH=1 ||
-	LOG_ISBASH=0
-
+#
+# Core logging functuions
 function log_log {
 	local IFS=" "
 
@@ -26,9 +23,9 @@ function log_log {
 
 	# Check call stack, create log text
 	local log_text
-	check_true $LOG_ISBASH &&
-		log_text="${FONT_RED}${1}: $APPLICATION_NAME: ${FUNCNAME[*]}: ${2}${FONT_DEFAULT}" ||
-		log_text="${FONT_RED}${1}: $APPLICATION_NAME: ${2}${FONT_DEFAULT}"
+	check_array &&
+		log_text="${FONT_RED}${1}: $PROGRAM_NAME: ${FUNCNAME[*]}: ${2}${FONT_DEFAULT}" ||
+		log_text="${FONT_RED}${1}: $PROGRAM_NAME: ${2}${FONT_DEFAULT}"
 
 	# Log to terminal
 	if check_true $LOG_TERMINAL ; then
@@ -52,6 +49,28 @@ function log_log {
 	fi
 }
 
+#
+# Exits after log_crit
+function log_fatal {
+	local log_rtn=$?
+
+	log_log crit "$1" ||
+		exit $?
+
+	if check_number $2 ; then
+		exit $2
+	elif [[ $log_rtn -gt 0 ]] ; then
+		exit $log_rtn
+	elif check_number "$rtn" && [[ $rtn -gt 0 ]] ; then
+		exit $rtn
+	else
+		exit 10
+	fi
+}
+
+#
+# Alias
+
 function log_info {
 	log_log 'info' "$1"
 	return $?
@@ -67,7 +86,27 @@ function log_err {
 	return $?
 }
 
-function log_fatal {
+function log_crit {
+	log_log crit "$1"
+	return $?
+}
+
+function log_informal {
+	log_log 'info' "$1"
+	return $?
+}
+
+function log_warning {
+	log_log warn "$1"
+	return $?
+}
+
+function log_error {
+	log_log err "$1"
+	return $?
+}
+
+function log_critical {
 	log_log crit "$1"
 	return $?
 }

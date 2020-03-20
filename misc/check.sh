@@ -44,10 +44,21 @@ function check_false {
 	return 0
 }
 
-# legacy
-alias chk_rtn=check_return
-alias chk_empty=check_empty
-alias chk_cmd=check_command
-alias chk_true=check_true
-alias chk_false=check_false
+# Checks if it looks like a number
+function check_numebr {
+	rtn=0
+	while [[ $# -gt 0 ]] ; do
+		grep -qxEe "-?[0-9]+(\.[0-9]+)?" - <<< "$1" &&
+			rtn=$(( $rtn + 1 ))
+		shift
+	done
+	return $rtn
+}
+
+# Checks if shell support arrays
+CHECK_ARRAY[1]="YES" 2> /dev/null
+function check_array {
+	[[ ${CHECK_ARRAY[1]} == "YES" ]] 2> /dev/null
+	return $?
+}
 
