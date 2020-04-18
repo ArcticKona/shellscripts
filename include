@@ -1,0 +1,7 @@
+#!/bin/bash
+# Include. 2020 Arctic Kona. No Rights Reserved. NO WARRANTY! https://kona.cf/ mailto:arcticjieer@gmail.com
+# Include sends files to STDOUT, like cat. Should not support other arguments.
+
+alias include="cat"
+
+
