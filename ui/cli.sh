@@ -1,5 +1,6 @@
 #!/bin/bash
 # Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
+import_private
 import misc/default
 import misc/check
 import log/log
@@ -7,6 +8,8 @@ import terminal/font
 
 # Display simple information
 function ui_info {
+	local title text
+
 	[[ "${title}$1" != "" ]] &&
 		echo "${FONT_BOLD}${FONT_LINE}${title}$1${FONT_UNLINE}${FONT_UNBOLD}"
 	[[ "${text}$2" != "" ]] &&
@@ -17,7 +20,9 @@ function ui_info {
 
 # Display a warning
 function ui_warn {
-	ui_info 1>&2
+	local title text
+
+	ui_info "${title}$1" "${text}$2" 1>&2
 
 	return $?
 }
@@ -29,7 +34,8 @@ for UI_TEXT_PROGRAM in less more cat ; do
 		break
 done
 function ui_text {
-	ui_info "$2" "$3"
+	local title text file
+	ui_info "${title}$2" "${text}$3"
 
 	# First, check for program
 	if [[ "$UI_TEXT_PROGRAM" == "" ]] ; then
@@ -51,7 +57,8 @@ function ui_text {
 
 # Ask for a line of input
 function ui_entry {
-	ui_info "$1" "$2"
+	local title text capture
+	ui_info "${title}$1" "${text}$2"
 
 	printf " > "
 	# If a capture variable is specified, use that
@@ -73,7 +80,8 @@ for UI_EDIT_PROGRAM in editor nano vim vi ed ; do
 		break
 done
 function ui_edit {
-	ui_info "$2" "$3"
+	local title text file
+	ui_info "${title}$2" "${text}$3"
 
 	# First, check for program
 	if [[ "$UI_EDIT_PROGRAM" == "" ]] ; then
@@ -113,9 +121,10 @@ function ui_edit {
 
 # Ask to select off of a list
 function ui_list {
+	local title text file capture
 	local reponse index
 	index=0
-	ui_info "" ""
+	ui_info "${title}" "${text}"
 
 	# NOTE: CASE AND PASTE
 	# If a list arguments was specified, use that

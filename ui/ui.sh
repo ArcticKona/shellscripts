@@ -4,15 +4,15 @@ import misc/check
 
 # If DISPLAY is set and zenity is installed, use zenity
 if [[ "$DISPLAY" ]] && check_command zenity 1> /dev/null ; then
-	import "ui/zenity"
+	IMPORT_CHECK=no import "ui/zenity"
 
 # Otherwise, if dialog is installed, use it
 #elif check_command dialog ; then
-#	import "ui/dialog"
+#	IMPORT_CHECK=no import "ui/dialog"
 
 # Finally, use CLI
 else
-	import "ui/cli"
+	IMPORT_CHECK=no import "ui/cli"
 
 fi
 

@@ -1,12 +1,34 @@
 #!/bin/bash
-# Imports shell subs. 2019 Arctic Kona. No rights reserved.
-test "$IMPORT_DIR" == "" &&	# Root directory to import stuff from
-	IMPORT_DIR="`pwd`/"
-test "$IMPORT_URI" == "" &&	# URI to download scripts from
+# Import services. 2020 Arctic Kona. No Rights Reserved. NO WARRANTY! https://kona.cf/ mailto:arcticjieer@gmail.com
+
+#
+# TODO
+# *	Using tempfile and other structures are somewhat inefficient, do fix
+# *	Import_get does not work in directories, and is non-recursive
+# *	public/private calls don't work
+# *	It is possible to cause an infinitive loop using IMPORT_CALL=public
+# *	Fix other bugs in IMPORT_CALL
+
+#
+# Common variables
+
+# Web location to get shell scripts from
+[[ "$IMPORT_WEB" ]] ||
 	IMPORT_URI="https://shell-scripts.akona.me/"
-test "$IMPORT_VERBOSE" == "" &&	# Be quiet, or not
-	IMPORT_VERBOSE="false"
-IMPORT_ALREADY=""		# subs already considered loaded
+
+# Disk location to get shell scripts from
+[[ "$IMPORT_DIR" ]] ||
+	IMPORT_DIR="/tmp/"
+
+# Verbose?
+[[ "$IMPORT_VERBOSE" ]] ||
+	IMPORT_VERBOSE=1
+
+# Other variables
+IMPORT_ALREADY=""
+IMPORT_CALL="private"
+IMPORT_NAME=""
+IMPORT_DEPTH=0
 
 # Useful presets
 IFS='
@@ -14,107 +36,250 @@ IFS='
 shopt -s expand_aliases
 shopt -s extglob
 
-# Tests if required commands are here
-for i in wget grep ; do
-	if ! which $i 1>/dev/null ; then
-		printf "ERROR: COMMAND $i NOT FOUND \r\n"
-		return 1
+# Make tempfile
+if which mktemp 1> /dev/null ; then
+	IMPORT_TEMPFILE=$( mktemp ) ||
+		return $?IMPORT_VERBOSE
+
+else
+	IMPORT_TEMPFILE="/tmp/$$.tmp"
+	if [[ -f "$IMPORT_TEMPFILE" ]] || ! touch "$IMPORT_TEMPFILE" ; then
+		echo "FATAL: CANNOT USE TEMPFILE" 1>&2
+		exit 3
 	fi
-done
 
-# Import
-function import {
-	IFS='
-'
-	local rtn=0
-	local load_file=$( mktemp ) ||
-		return $?
+fi
 
-	while test $# -gt 0 ; do
-		test "$IMPORT_VERBOSE" == "true" &&
-			echo "IMPORTING $1"
+#
+# Reject if indirect call
+alias import_private="[[ \"\$IMPORT_CALL\"==\"public\" ]] && IMPORT_CALL=\"reject\" && return 0 || [[ 0 ]];"
+alias import_public="[[ 0 ]];"
 
-		# Is it already loaded?
-		local full_path="$IMPORT_DIR/$1"
-		if echo "$IMPORT_ALREADY" | grep -qxFe "$full_path" - ; then
-			test "$IMPORT_VERBOSE" == "true" &&
-				echo "$1 ALREADY IMPORTED. SKIPPING"
+#
+# Fetch package source code
+function import_fetch_file {
+	local rtn file
+	rtn=0
+
+	# Fetch files if there
+	if [[ -f "$IMPORT_DIR/$1" ]] ; then
+		cat "$IMPORT_DIR/$1"
+		
+	# Or alternative names
+	elif [[ -f "$IMPORT_DIR/$1.sh" ]] ; then
+		cat "$IMPORT_DIR/$1.sh"
+
+	elif [[ -f "$IMPORT_DIR/$1.bash" ]] ; then
+		cat "$IMPORT_DIR/$1.bash"
+		
+	# Load all contents if it's a directory
+	elif test -d "$IMPORT_DIR/$1" ; then
+		for file in $( ls "$IMPORT_DIR/$1" ) ; do
+			if [[ "${file##*.}" == "" ]] || [[ "${file##*.}" == "sh" ]] || [[ "${file##*.}" == "bash" ]] ; then
+				file=${file//\"/\\\"}
+				file=${file//\$/\\\$}
+				file=${file//\`/\\\`}
+				echo "call=public import_file \"$1/$file\""
+			fi
+		done
+
+	# Fail!
+	else
+		[[ "$IMPORT_VERBOSE" == "1" ]] &&
+			echo "ERROR: CANNOT FIND PACKAGE $1 ON FILESYSTEM" 1>&2
+		rtn=$(( $rtn + 1 ))
+
+	fi
+	return $rtn
+}
+
+function import_fetch_web {
+	local rtn file
+	rtn=0
+
+	# Download
+	if import_webget "$IMPORT_URI/$1" ; then
+		true 
+
+	# Alternative names on server?
+	elif import_webget "$IMPORT_URI/$1.sh" ; then
+		true
+
+	elif import_webget "$IMPORT_URI/$1.bash" ; then
+		true
+
+	# So it's a web directory?
+	elif import_webget "$IMPORT_URI/$1/index.lst" 1> "$IMPORT_TEMPFILE" ; then
+		for file in $( cat "$IMPORT_TEMPFILE" ) ; do
+			if [[ "${file##*.}" == "" ]] || [[ "${file##*.}" == "sh" ]] || [[ "${file##*.}" == "bash" ]] ; then
+				file=${file//\"/\\\"}
+				file=${file//\$/\\\$}
+				file=${file//\`/\\\`}
+				echo "call=public import_web \"$1/$file\""
+			fi
+		done
+
+	# Fail!
+	else
+		[[ "$IMPORT_VERBOSE" == "1" ]] &&
+			echo "ERROR: CANNOT FIND PACKAGE $1 CHECK INTERNET" 1>&2
+		rtn=$(( $rtn + 1 ))
+
+	fi
+
+	return $rtn
+}
+
+function import_fetch {
+	local rtn
+	rtn=0
+
+	while [[ $# -gt 0 ]] ; do
+		import_fetch_file "$1" ||
+			import_fetch_web "$1" ||
+				rtn=$(( $rtn + 1 ))
+
+		shift
+	done
+	return $rtn
+}
+
+#
+# Import package
+
+# Import using suggested fetch command
+function import_import {
+	local call
+	[[ "$call" ]] ||
+		call="private"	# Unless specified, calls are private
+
+	local rtn
+	rtn=0
+
+	# Error if too deep
+	if [[ $IMPORT_DEPTH -gt 32 ]] ; then
+		echo "ERROR: IMPORT_DEPTH TOO DEEP"
+		exit 255
+	fi
+
+	# Load each argument
+	while [[ $# -gt 0 ]] ; do
+		# Continue if already loaded
+		if import_check "$1" ; then
+			[[ "$IMPORT_VERBOSE" == "1" ]] &&
+				echo "NOTICE: $1 ALREADY LOADED, SKIPPING"
 			shift
 			continue
 		fi
-		IMPORT_ALREADY=$( printf "%s\n%s" "$full_path" "$IMPORT_ALREADY" )	# Record failures too
 
-		# Load files if there
-		if test -f "$full_path" ; then
-			import_source "$full_path"
-			rtn=$(( $rtn + $? ))
+		# Fetch
+		$IMPORT_FETCH_COMMAND "$1" 1> "$IMPORT_TEMPFILE"
+		rtn=$(( $rtn + $? ))
 
-		# Or alternative names
-		elif test -f "$full_path.sh" ; then
-			import_source "$full_path.sh"
-			rtn=$(( $rtn + $? ))
-
-		elif test -f "$full_path.bash" ; then
-			import_source "$full_path.bash"
-			rtn=$(( $rtn + $? ))
-
-		# Load all contents if it's a directories
-		elif test -d "$full_path" ; then
-			for file in $( ls "$full_path" | grep -xEe '([^.]+|.+\.sh|.+\.bash)' - ) ; do	# Helps to only load certain files
-				import "$1/$file"
-				rtn=$(( $rtn + $? ))
-			done
-
-		# Or download
-		elif wget -qO "$load_file" "$IMPORT_URI/$1" ; then
-			import_source "$load_file"
-			rtn=$(( $rtn + $? ))
-
-		# Alternative names on server?
-		elif wget -qO "$load_file" "$IMPORT_URI/$1.sh" ; then
-			import_source "$load_file"
-			rtn=$(( $rtn + $? ))
-
-		elif wget -qO "$load_file" "$IMPORT_URI/$1.bash" ; then
-			import_source "$load_file"
-			rtn=$(( $rtn + $? ))
-
-		# So it's a web directory?
-		elif wget -qO "$load_file" "$IMPORT_URI/$1/index.lst" ; then
-			for file in $( cat "$load_file" | grep -xEe '([^.]+|.+\.sh|.+\.bash)' - ) ; do
-				import "$1/${file}"
-				rtn=$(( $rtn + $? ))
-			done
-
-		# Oops ...
-		else
-			printf "CANNOT FIND $1 CHECK FILESYSTEM OR INTERNET SERVICE \r\n" 1>&2
+		# Load
+		IMPORT_NAME="$1" IMPORT_CALL="$call" IMPORT_DEPTH=$(( $IMPORT_DEPTH + 1 )) IMPORT_ALREADY="$IMPORT_ALREADY
+$1"		source "$IMPORT_TEMPFILE"	# Odd hacks?
+		if [[ $? -gt 0 ]] ; then
+			echo "WARNING: $1 RETURNED NON-ZERO EXIT CODE" 1>&2
 			rtn=$(( $rtn + 1 ))
+		fi
 
+		# If not rejected, record load
+		if [[ "$IMPORT_CALL" == "reject" ]] ; then
+			[[ "$IMPORT_VERBOSE" == "1" ]] &&
+				echo "NOTICE: $1 REJECTED"
+		else
+		IMPORT_ALREADY="$IMPORT_ALREADY
+$1"
 		fi
 
 		shift
 	done
-
-	rm "$load_file"
 	return $rtn
 }
 
-# Import just a file
-function import_source {
-	source "$1"
-	if test $? -gt 0 ; then
-		test "$2" != "" &&
-			printf "$2 RETURNED A NON-ZERO EXIT CODE \r\n" 1>&2 ||
-			printf "$1 RETURNED A NON-ZERO EXIT CODE \r\n" 1>&2
-		return 1
-	fi
-	return 0
+# Just from disk
+alias import_file="IMPORT_FETCH_COMMAND=import_fetch_file import_import"
+
+# Just from web
+alias import_web="IMPORT_FETCH_COMMAND=import_fetch_web import_import"
+
+# Use both
+alias import="IMPORT_FETCH_COMMAND=import_fetch import_import"
+
+#
+# Download package to IMPORT_DIR
+function import_get {
+	local rtn
+	rtn=0
+
+	while [[ $# -gt 0 ]] ; do
+		import_fetch_web "$1" 1> "${IMPORT_DIR}/$1"
+		if [[ $? -gt 0 ]]  ; then
+			[[ -f "${IMPORT_DIR}/$1" ]] &&
+				rm "${IMPORT_DIR}/$1" 2> /dev/null
+			rtn=$(( $rtn + 1 ))
+		fi
+
+		shift
+	done
+	return $rtn
 }
 
-# Alias
-function import_import {
-	import "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}" "${9}" "${10}" "${11}" "${12}" "${13}" "${14}" "${15}" "${16}"
-	return $?
-}
+#
+# Find download program
+
+# Is there wget?
+if which wget 1> /dev/null ; then
+	function import_webget {
+		wget -qO - "$1"
+		return $?
+	}
+
+# Is there curl?
+elif which curl 1> /dev/null ; then
+	function import_webget {
+		curl "$1"
+		return $?
+	}
+
+# Are we stuck with ncat?
+elif which ncat 1> /dev/null ; then
+	# TODO: Implement
+	function import_webget {
+		echo "Not yet implemented: wget or curl required" 1>&2
+		exit 3
+	}
+
+# Or nothing
+else
+	echo "wget or curl required" 1>&2
+	exit 3
+
+fi
+
+#
+# Find checking program
+
+# Grep?
+if which grep 1> /dev/null ; then
+	function import_check {
+		grep -xqFe "$1" - <<< "$IMPORT_ALREADY"
+		return $?
+	}
+
+# Use shell buitins only
+else
+	function import_check {
+		local line IFS
+		IFS="
+"
+		for line in $IMPORT_ALREADY ; do
+			[[ "$line" == "$1" ]] &&
+				return 0
+		done
+		return 1
+	}
+
+fi
 
