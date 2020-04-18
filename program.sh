@@ -1,12 +1,14 @@
 #!/bin/bash
-# Basic application information. 2019 Arctic Kona. No rights reserved.
+# Basic information about this program. 2019 Arctic Kona. No rights reserved.
 # ABSOLUTELY NO WARRANTY
+import misc/check
 
-APPLICATION_NAME="Shell Scripts"
-APPLICATION_VERSION="0.0.1"
-APPLICATION_AUTHOR="Arctic Kona"
-APPLICATION_VENDOR="Arctic Kona"
-APPLICATION_COPYRIGHT="Public Domain (PD)"
-APPLICATION_CONTACT="arcticjieer@gmail.com"
-APPLICATION_WEBSITE="https://akona.me"
+PROGRAM_NAME="Shell Scripts"
+PROGRAM_VERSION="0.0.1"
+PROGRAM_AUTHOR="Arctic Kona"
+PROGRAM_VENDOR="Arctic Kona"
+PROGRAM_COPYRIGHT="Public Domain (PD)"
+PROGRAM_CONTACT="arcticjieer@gmail.com"
+PROGRAM_WEBSITE="https://akona.me"
+
 

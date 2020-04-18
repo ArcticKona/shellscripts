@@ -1,11 +1,14 @@
 #!/bin/bash
 # Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
+import_private
 import misc/argument
 import misc/default
 import log/log
 
 # Display simple information
 function ui_info {
+	local title text
+
 	zenity --info --title="${title}$2" --text="${text}$1"
 
 	return $?
@@ -13,13 +16,16 @@ function ui_info {
 
 # Display a warning
 function ui_warn {
+	local title text
 	zenity --error --title="${title}$2" --text="${text}$1"
 
 	return $?
 }
 
 # Display some text
-function ui_text {
+function ui_text {	
+	local title file
+
 	# If a file is specified, use that
 	if [[ "${file}$1" ]] ; then
 		zenity --text-info --title="${title}$2" < "${file}$1"
@@ -34,6 +40,8 @@ function ui_text {
 
 # Ask for a line of input
 function ui_entry {
+	local title text entrytext capture
+
 	# If a capture variable is specified, use that
 	if [[ "${capture}$3" == "" ]] ; then
 		zenity --entry --title="${title}$2" --text="${text}$1" --entry-text="${entrytext}"
@@ -48,6 +56,8 @@ function ui_entry {
 
 # Edit a file
 function ui_edit {
+	local title file
+
 	# If a file is specified, use that
 	if [[ "${file}$1" ]] ; then
 		zenity --text-info --editable --title="${title}$2" < "${file}$1"
@@ -62,6 +72,8 @@ function ui_edit {
 
 # Ask to select off of a list
 function ui_list {
+	local title text list capture
+
 	# NOTE: CASE AND PASTE
 	# If a list arguments was specified, use that
 	if [[ "$list" ]] ; then

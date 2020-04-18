@@ -41,26 +41,6 @@ function struct_new {
 	return 0
 }
 
-# Example class
-STRUCT_EXAMPLE_PROPERTY="
-name
-"
-STRUCT_EXAMPLE_METHOD="
-hello
-"
-STRUCT_EXAMPLE_name="stranger"
-function STRUCT_EXAMPLE_INIT {
-	[[ "$1" != "" ]] &&
-		SELF_name="$1"
-	struct_leave name
-	return 0
-}
-function STRUCT_EXAMPLE_hello {
-	struct_enter name
-	echo "Hello, ${SELF_name}!"
-	return 0
-}
-
 # Initializes the "SELF" variables. Explicit calls are more performance friendly
 function struct_enter {
 	while [[ $# > 0 ]] ; do

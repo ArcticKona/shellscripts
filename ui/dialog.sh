@@ -1,5 +1,8 @@
 #!/bin/bash
 # Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
+import_private
+import log/log
+log_fatal "ERROR"
 
 function ui_info {
 
