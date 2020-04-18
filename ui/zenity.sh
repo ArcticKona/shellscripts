@@ -1,6 +1,5 @@
 #!/bin/bash
 # Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
-import_private
 import misc/argument
 import misc/default
 import log/log
@@ -60,11 +59,23 @@ function ui_edit {
 
 	# If a file is specified, use that
 	if [[ "${file}$1" ]] ; then
-		zenity --text-info --editable --title="${title}$2" < "${file}$1"
+		if [[ "${capture}$3" == "" ]] ; then
+			zenity --text-info --editable --title="${title}$2" < "${file}$1"
+
+		else
+			eval "${capture}$3=\$zenity --text-info --editable --title="\${title}\$2" < "\${file}\$1" )"
+
+		fi
 
 	# Otherwise, use STDIN
 	else
-		zenity --text-info --editable --title="${title}$2"
+		if [[ "${capture}$3" == "" ]] ; then
+			zenity --text-info --editable --title="${title}$2"
+
+		else
+			eval "${capture}$3=\$zenity --text-info --editable --title="\${title}\$2" )"
+
+		fi
 
 	fi
 	return $?
@@ -86,6 +97,8 @@ function ui_list {
 	# If arguments were specified, use that
 	elif [[ $# -gt 0 ]] ; then
 		local list
+		list="$1"
+		shift
 		while [[ $# -gt 0 ]] ; do
 			list="$list
 $1"
