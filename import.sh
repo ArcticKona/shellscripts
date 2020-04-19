@@ -5,9 +5,6 @@
 # TODO
 # *	Using tempfile and other structures are somewhat inefficient, do fix
 # *	Import_get does not work in directories, and is non-recursive
-# *	public/private calls don't work
-# *	It is possible to cause an infinitive loop using IMPORT_CALL=public
-# *	Fix other bugs in IMPORT_CALL
 
 #
 # Common variables
@@ -26,7 +23,6 @@
 
 # Other variables
 IMPORT_ALREADY=""
-IMPORT_CALL="private"
 IMPORT_NAME=""
 IMPORT_DEPTH=0
 
@@ -49,11 +45,6 @@ else
 	fi
 
 fi
-
-#
-# Reject if indirect call
-alias import_private="[[ \"\$IMPORT_CALL\"==\"public\" ]] && IMPORT_CALL=\"reject\" && return 0 || [[ 0 ]];"
-alias import_public="[[ 0 ]];"
 
 #
 # Fetch package source code
@@ -149,9 +140,6 @@ function import_fetch {
 
 # Import using suggested fetch command
 function import_import {
-	local call
-	[[ "$call" ]] ||
-		call="private"	# Unless specified, calls are private
 
 	local rtn
 	rtn=0
@@ -164,6 +152,9 @@ function import_import {
 
 	# Load each argument
 	while [[ $# -gt 0 ]] ; do
+		[[ "$IMPORT_VERBOSE" == "1" ]] &&
+			echo "NOTICE: TRYING TO LOAD $1"
+
 		# Continue if already loaded
 		if import_check "$1" ; then
 			[[ "$IMPORT_VERBOSE" == "1" ]] &&
@@ -177,21 +168,18 @@ function import_import {
 		rtn=$(( $rtn + $? ))
 
 		# Load
-		IMPORT_NAME="$1" IMPORT_CALL="$call" IMPORT_DEPTH=$(( $IMPORT_DEPTH + 1 )) IMPORT_ALREADY="$IMPORT_ALREADY
+		IMPORT_NAME="$1" IMPORT_DEPTH=$(( $IMPORT_DEPTH + 1 )) IMPORT_ALREADY="$IMPORT_ALREADY
 $1"		source "$IMPORT_TEMPFILE"	# Odd hacks?
 		if [[ $? -gt 0 ]] ; then
 			echo "WARNING: $1 RETURNED NON-ZERO EXIT CODE" 1>&2
 			rtn=$(( $rtn + 1 ))
 		fi
 
-		# If not rejected, record load
-		if [[ "$IMPORT_CALL" == "reject" ]] ; then
-			[[ "$IMPORT_VERBOSE" == "1" ]] &&
-				echo "NOTICE: $1 REJECTED"
-		else
+		# Record
+		[[ "$IMPORT_VERBOSE" == "1" ]] &&
+				echo "NOTICE: $1 LOADED OKAY"
 		IMPORT_ALREADY="$IMPORT_ALREADY
 $1"
-		fi
 
 		shift
 	done
