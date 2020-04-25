@@ -108,7 +108,7 @@ $1"
 		if [[ "${capture}" == "" ]] ; then
 			zenity --list --title="${title}$2" --text="${text}$1" --column="" <<< "$list"
 		else
-			eval "${capture}=\$(zenity --list --title=\"\${title}\$2\" --text=\"\${text}\$1\" --column=\"\" <<< \"\$list\""
+			eval "${capture}=\$(zenity --list --title=\"\${title}\$2\" --text=\"\${text}\$1\" --column=\"\" <<< \"\$list\" )"
 		fi
 
 	# If a file was specified, use that
