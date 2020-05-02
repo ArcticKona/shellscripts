@@ -167,19 +167,19 @@ function import_import {
 		$IMPORT_FETCH_COMMAND "$1" 1> "$IMPORT_TEMPFILE"
 		rtn=$(( $rtn + $? ))
 
+		# Record (even failed attempts)
+		IMPORT_ALREADY="$IMPORT_ALREADY
+$1"
+
 		# Load
-		IMPORT_NAME="$1" IMPORT_DEPTH=$(( $IMPORT_DEPTH + 1 )) IMPORT_ALREADY="$IMPORT_ALREADY
-$1"		source "$IMPORT_TEMPFILE"	# Odd hacks?
+		IMPORT_NAME="$1" IMPORT_DEPTH=$(( $IMPORT_DEPTH + 1 )) source "$IMPORT_TEMPFILE"
 		if [[ $? -gt 0 ]] ; then
 			echo "WARNING: $1 RETURNED NON-ZERO EXIT CODE" 1>&2
 			rtn=$(( $rtn + 1 ))
+		elif [[ "$IMPORT_VERBOSE" == "1" ]] ; then
+				echo "NOTICE: $1 LOADED OKAY"
 		fi
 
-		# Record
-		[[ "$IMPORT_VERBOSE" == "1" ]] &&
-				echo "NOTICE: $1 LOADED OKAY"
-		IMPORT_ALREADY="$IMPORT_ALREADY
-$1"
 
 		shift
 	done
@@ -202,8 +202,21 @@ function import_get {
 	rtn=0
 
 	while [[ $# -gt 0 ]] ; do
+		# Check overwrite
+		[[ "$IMPORT_VERBOSE" == "1" ]] && [[ -f "${IMPORT_DIR}/$1" ]] &&
+			echo "WARNING: OVERWRITTING $1" 1>&2
+
+		# Make directory
+		local dir base
+		dir="${IMPORT_DIR}/$1"
+		base=${dir##*/}
+		mkdir -p "${dir%$base}"
+
+		# Fetch
 		import_fetch_web "$1" 1> "${IMPORT_DIR}/$1"
 		if [[ $? -gt 0 ]]  ; then
+			[[ "$IMPORT_VERBOSE" == "1" ]] &&
+				echo "ERROR: FETCH RETURNED NON-ZERO ERROR STATUS" 1>&2
 			[[ -f "${IMPORT_DIR}/$1" ]] &&
 				rm "${IMPORT_DIR}/$1" 2> /dev/null
 			rtn=$(( $rtn + 1 ))
@@ -213,6 +226,8 @@ function import_get {
 	done
 	return $rtn
 }
+
+# TODO: implement deletion of local packages
 
 #
 # Find download program
@@ -233,10 +248,14 @@ elif which curl 1> /dev/null ; then
 
 # Are we stuck with ncat?
 elif which ncat 1> /dev/null ; then
-	# TODO: Implement
+	# Bare (does not work)
 	function import_webget {
-		echo "Not yet implemented: wget or curl required" 1>&2
-		exit 3
+		host=$( cut -d "/" -f 3 - <<< "$1" )
+		path=$( cut -d "/" -f 4- <<< "$1" )
+		printf "GET /$path HTTP/1.0\r\nHost: $host\r\nUser-Agent: import_webget\r\nConnection: close\r\n\r\n" | \
+		ncat -w 4 --ssl $host 443 | \
+		grep -x -F -A 1073741824 -e "" - 
+		return 0
 	}
 
 # Or nothing

@@ -3,7 +3,7 @@
 import program
 import misc/default
 import misc/check
-import terminal/font
+import term/font
 default LOG_TERMINAL=1
 default LOG_FILE=0
 default LOG_SYSLOG=0

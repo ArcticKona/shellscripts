@@ -1,10 +1,9 @@
 #!/bin/bash
 # Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
-import_private
 import misc/default
 import misc/check
 import log/log
-import terminal/font
+import term/font
 
 # Display simple information
 function ui_info {
