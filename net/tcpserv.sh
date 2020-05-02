@@ -54,9 +54,11 @@ function tcpserv {
 		shift
 	fi
 
+	check_command declare ||
+		log_fatal "comand declare not found"
 	# Include all functions and aliases
 	exec="
-	$( declare -f )
+	$( set )
 	$( alias )
 	$exec
 	"
