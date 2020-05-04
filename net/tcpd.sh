@@ -2,23 +2,27 @@
 # Simple TCP Server Wrapper. 2020 Kona Arctic. No rights reserved.
 # FIXME: TCP connection might not automatically close on finish.
 import misc/check
+import misc/default
 import log/log
+
+default TCPD_PORT=1234
+default TCPD_EXEC="echo See TCPD documentation"
 
 # Use ncat if possible
 if check_command ncat ; then
-	function tcpserv_listen {
-		ncat -lkp$1 -c "exec $TCPSERV_SHELL -c \"\$TCPSERV_EXEC\""
+	function tcpd_tcpd {
+		ncat -lkp$1 -c "exec $TCPD_SHELL -c \"\$TCPD_EXEC\""
 	}
 
 # busybox nc? FIXME: English only FIXME: busybox netcat
 elif check_command busybox && [[ $( busybox nc || true ) != "nc: applet not found" ]] ; then
-	TCPSERV_TEMP=$( busybox nc -e || true )
-	TCPSERV_TEMP=$( head -n 1 - <<< "$TCPSERV_TEMP" )
-	[ "$TCPSERV_TEMP" == "nc: invalid option -- 'e'" ]] &&
+	TCPD_TEMP=$( busybox nc -e || true )
+	TCPD_TEMP=$( head -n 1 - <<< "$TCPD_TEMP" )
+	[ "$TCPD_TEMP" == "nc: invalid option -- 'e'" ]] &&
 		log_fatal "Your version of netcat doesn not support command execution"
 
-	function tcpserv_listen {
-		busybox nc -llp$1 -e $TCPSERV_SHELL -c "$2"
+	function tcpd_tcpd {
+		busybox nc -llp$1 -e $TCPD_SHELL -c "$2"
 		return $?
 	}
 
@@ -33,30 +37,32 @@ else
 fi
 
 # Get shell
-if check_command bash ; then
-	TCPSERV_SHELL=bash
-elif check_command ash ; then
-	TCPSERV_SHELL=ash
-else
-	TCPSERV_SHELL=sh
+if [[ "$TCPD_SHELL" == "" ]] ; then
+	if check_command bash ; then
+		TCPD_SHELL=bash
+	elif check_command ash ; then
+		TCPD_SHELL=ash
+	else
+		TCPD_SHELL=sh
+	fi
 fi
 
 # Actual Wrapper
-function tcpserv {
+function tcpd {
 	# Get arguments
 	local port exec
 	if [[ "$port" == "" ]] ; then
-		port="$1"
+		port=$1
 		shift
 	fi
 	if [[ "$exec" == "" ]] ; then
 		exec="$1"
 		shift
 	fi
+	default port="$TCPD_PORT"
+	default exec="$TCPD_EXEC"
 
-	check_command declare ||
-		log_fatal "comand declare not found"
-	# Include all functions and aliases
+	# Include all functions, variables, and aliases
 	exec="
 	$( set )
 	$( alias )
@@ -64,9 +70,9 @@ function tcpserv {
 	"
 
 	# Serve
-	export TCPSERV_PORT=$port
-	export TCPSERV_EXEC="$exec"
-	tcpserv_listen $port "$exec"
+	export TCPD_PORT=$port
+	export TCPD_EXEC="$exec"
+	tcpd_tcpd $port "$exec"
 
 	return $?
 }
