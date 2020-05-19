@@ -290,3 +290,40 @@ else
 
 fi
 
+#
+# Find mktemp
+if which mktemp 1> /dev/null ; then
+	function import_mktemp {
+		mktemp $1
+		return $?
+	}
+
+else
+	function import_mktemp {
+		if [[ -d /tmp ]] ; then
+			file="/tmp/$$$RANDOM$RANDOM$RANDOM"
+		elif [[ -d /var/tmp ]] ; then
+			file="/var/tmp/$$$RANDOM$RANDOM$RANDOM"
+		else
+			return 2
+		fi
+		if [[ -f "$file" ]] ; then
+			if [[ "$RANDOM" ]] ; then
+				import_mktemp $1
+				return $?
+			else
+				return 2
+			fi
+		fi
+		echo "$file"
+		if [[ "$1" == "-d" ]] ; then
+			mkdir "$file"
+		else
+			touch "$file"
+		fi
+		return $?
+	}
+
+fi
+
+

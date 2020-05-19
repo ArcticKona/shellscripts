@@ -5,6 +5,8 @@ default	CYCLE_SELF=CYCLE	# TODO: OOP shell scripts?
 default CYCLE_SEPARATOR=$( printf "\\31" )
 
 function cycle_add {
+	local exec
+	eval "${CYCLE_SELF}_LIST=\"\$${CYCLE_SELF}_LIST${CYCLE_SEPARATOR}$exec\""
 	while [[ $# -gt 0 ]] ; do
 		eval "${CYCLE_SELF}_LIST=\"\$${CYCLE_SELF}_LIST${CYCLE_SEPARATOR}$1\""
 		shift
@@ -29,7 +31,7 @@ function cycle_delete {
 	return 0
 }
 
-function cycle_cycle {
+function cycle {
 	local IFS="$CYCLE_SEPARATOR"
 
 	for exec in $( eval "echo \"\$${CYCLE_SELF}_LIST\"" ) ; do
@@ -52,7 +54,9 @@ function cycle_new {
 
 	alias "${capture}_add=CYCLE_SELF=$capture cycle_add"
 	alias "${capture}_delete=CYCLE_SELF=$capture cycle_delete"
-	alias "${capture}=CYCLE_SELF=$capture cycle_cycle"
+	alias "${capture}=CYCLE_SELF=$capture cycle"
+
+	eval "${capture}_LIST="
 
 	return 0
 }
