@@ -80,29 +80,40 @@ function ui_edit {
 }
 
 function ui_list {
-	local title text list file line
+	local title text list file line IFS="
+"
 
+	# Get arugments
 	while [[ $# -gt 0 ]] ; do
-		list="$1
-$list"
+		list="$list
+$1"
 		shift
 	done
 	[[ "$file" ]] &&
-		list="$( cat $file )
-$list"
+		list="$list
+$( cat $file )"
+	[[ "$list" ]] ||
+		list=$( cat - )
 
-	if [[ "$list" ]] ; then
-		if [[ "$capture" ]] ; then
-			eval "$capture=\$( $UI_API <<< \$list )"
+	# Remove empty lines
+	file=""
+	for line in $list ; do
+		if [[ "$file" ]] ; then
+			[[ "$line" ]] &&
+				file="$file
+$line"
 		else
-			$UI_API <<< "$list"
+			[[ "$line" ]] &&
+				file="$line"
 		fi
+	done
+	list="$file"
+
+	# Ok
+	if [[ "$capture" ]] ; then
+		eval "$capture=\$( $UI_API )"
 	else
-		if [[ "$capture" ]] ; then
-			eval "$capture=\$( $UI_API )"
-		else
-			$UI_API
-		fi
+		$UI_API
 	fi
 	
 	return $?

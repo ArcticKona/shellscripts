@@ -18,7 +18,11 @@ function ui_zenity_warn {
 
 # Display some text
 function ui_zenity_text {	
-	zenity --text-info --title="${title}"
+	if [[ "$file" ]] ; then
+		zenity --text-info --title="${title}" < "$file"
+	else
+		zenity --text-info --title="${title}"
+	fi
 	return $?
 }
 
@@ -30,13 +34,18 @@ function ui_zenity_entry {
 
 # Edit a file
 function ui_zenity_edit {
-	zenity --text-info --editable --title="${title}"
+	if [[ "$file" ]] ; then
+		title=$( zenity --text-info --editable --title="${title}" < "$file" )
+		printf "$title" 1> "$file"
+	else
+		zenity --text-info --editable --title="${title}"
+	fi
 	return $?
 }
 
 # Ask to select off of a list
 function ui_zenity_list {
-	zenity --list --title="${title}" --text="${text}" --column=""
+	zenity --list --title="${title}" --text="${text}" --column="" <<< "$list"
 	return $?
 }
 
