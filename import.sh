@@ -32,18 +32,24 @@ IFS='
 shopt -s expand_aliases
 shopt -s extglob
 
-# Make tempfile
+# mktemp?
 if which mktemp 1> /dev/null ; then
-	IMPORT_TEMPFILE=$( mktemp ) ||
-		return $?IMPORT_VERBOSE
+	function import_mktemp {
+		IMPORT_TEMPFILE=$( mktemp )
+		if [[ $? -gt 0 ]] ; then
+			echo "FATAL: CANNOT USE TEMPFILE" 1>&2
+			exit 3
+		fi
+	}
 
 else
-	IMPORT_TEMPFILE="/tmp/$$.tmp"
-	if [[ -f "$IMPORT_TEMPFILE" ]] || ! touch "$IMPORT_TEMPFILE" ; then
-		echo "FATAL: CANNOT USE TEMPFILE" 1>&2
-		exit 3
-	fi
-
+	function import_mktemp {
+		IMPORT_TEMPFILE="/tmp/$$.tmp"
+		if [[ -f "$IMPORT_TEMPFILE" ]] || ! touch "$IMPORT_TEMPFILE" ; then
+			echo "FATAL: CANNOT USE TEMPFILE" 1>&2
+			exit 3
+		fi
+	}
 fi
 
 #
@@ -143,6 +149,8 @@ function import_import {
 
 	local rtn
 	rtn=0
+	local IMPORT_TEMPFILE
+	import_mktemp
 
 	# Error if too deep
 	if [[ $IMPORT_DEPTH -gt 32 ]] ; then
@@ -180,9 +188,10 @@ $1"
 				echo "NOTICE: $1 LOADED OKAY"
 		fi
 
-
 		shift
 	done
+
+	rm "$IMPORT_TEMPFILE"
 	return $rtn
 }
 
@@ -290,40 +299,5 @@ else
 
 fi
 
-#
-# Find mktemp
-if which mktemp 1> /dev/null ; then
-	function import_mktemp {
-		mktemp $1
-		return $?
-	}
-
-else
-	function import_mktemp {
-		if [[ -d /tmp ]] ; then
-			file="/tmp/$$$RANDOM$RANDOM$RANDOM"
-		elif [[ -d /var/tmp ]] ; then
-			file="/var/tmp/$$$RANDOM$RANDOM$RANDOM"
-		else
-			return 2
-		fi
-		if [[ -f "$file" ]] ; then
-			if [[ "$RANDOM" ]] ; then
-				import_mktemp $1
-				return $?
-			else
-				return 2
-			fi
-		fi
-		echo "$file"
-		if [[ "$1" == "-d" ]] ; then
-			mkdir "$file"
-		else
-			touch "$file"
-		fi
-		return $?
-	}
-
-fi
 
 
