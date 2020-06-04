@@ -1,27 +1,48 @@
 #!/bin/bash
 # Runs in a temporary directory
+import misc/check
+import system/mktemp
 
+# Execute command in temporary directory
 function runonline {
-	local RUNONLINE_FILE RUNONLINE_PATH IFS=""
-	RUNONLINE_FILE=$( mktemp -d )
-	RUNONLINE_PATH=$( pwd )
-	cd "$RUNONLINE_FILE" ||
-		return $?
+	local exec
+	runonline_enter
 
-	# Function for local variables
-	function runonline_runonline {
-		local RUNONLINE_FILE RUNONLINE_PATH IFS=""
-		alias exec=""	# Make sure we dont quit
-		alias exit="true"
-		$@
-		return $?
-	}
+	if [[ $# -gt 0 ]] ; then
+		( $@ )
+	elif [[ $exec ]] ; then
+		( eval "$exec" )
+	else
+		return 3
+	fi
 
-	runonline_runonline $@
-
-	rm -rf "$RUNONLINE_FILE"
-	cd "$RUNONLINE_PATH"
+	runonline_leave
 	return $?
+}
+
+# Or, execute rest of script in temporary directory
+function runonline_enter {
+	local root path
+	path=$( pwd )
+	root=$( mktemp -d ) ||
+		return $?
+	cd "$root" ||
+		return $?
+	RUNONLINE_ROOT="$RUNONLINE_ROOT|$root|$path"
+	cleanup_add "[[ -e $root ]] && rm -rf $root"
+	return 0
+}
+
+# Use this on leave
+function runonline_leave {
+	[[ ${RUNONLINE_ROOT##*|} ]] &&
+		cd ${RUNONLINE_ROOT##*|}
+	RUNONLINE_ROOT=${RUNONLINE_ROOT%|*}
+	[[ ${RUNONLINE_ROOT##*|} ]] &&
+		rm -rf ${RUNONLINE_ROOT##*|}
+	rtn=$?
+	RUNONLINE_ROOT=${RUNONLINE_ROOT%|*}
+	return $rtn
 }
 
 

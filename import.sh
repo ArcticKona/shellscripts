@@ -10,12 +10,12 @@
 # Common variables
 
 # Web location to get shell scripts from
-[[ "$IMPORT_WEB" ]] ||
+[[ "$IMPORT_URI" ]] ||
 	IMPORT_URI="https://shell-scripts.akona.me/"
 
 # Disk location to get shell scripts from
-[[ "$IMPORT_DIR" ]] ||
-	IMPORT_DIR="/tmp/"
+[[ "$IMPORT_ROOT" ]] ||
+	IMPORT_ROOT="/tmp/"
 
 # Verbose?
 [[ "$IMPORT_VERBOSE" ]] ||
@@ -59,19 +59,19 @@ function import_fetch_file {
 	rtn=0
 
 	# Fetch files if there
-	if [[ -f "$IMPORT_DIR/$1" ]] ; then
-		cat "$IMPORT_DIR/$1"
+	if [[ -f "$IMPORT_ROOT/$1" ]] ; then
+		cat "$IMPORT_ROOT/$1"
 		
 	# Or alternative names
-	elif [[ -f "$IMPORT_DIR/$1.sh" ]] ; then
-		cat "$IMPORT_DIR/$1.sh"
+	elif [[ -f "$IMPORT_ROOT/$1.sh" ]] ; then
+		cat "$IMPORT_ROOT/$1.sh"
 
-	elif [[ -f "$IMPORT_DIR/$1.bash" ]] ; then
-		cat "$IMPORT_DIR/$1.bash"
+	elif [[ -f "$IMPORT_ROOT/$1.bash" ]] ; then
+		cat "$IMPORT_ROOT/$1.bash"
 		
 	# Load all contents if it's a directory
-	elif test -d "$IMPORT_DIR/$1" ; then
-		for file in $( ls "$IMPORT_DIR/$1" ) ; do
+	elif test -d "$IMPORT_ROOT/$1" ; then
+		for file in $( ls "$IMPORT_ROOT/$1" ) ; do
 			if [[ "${file##*.}" == "" ]] || [[ "${file##*.}" == "sh" ]] || [[ "${file##*.}" == "bash" ]] ; then
 				file=${file//\"/\\\"}
 				file=${file//\$/\\\$}
@@ -205,29 +205,29 @@ alias import_web="IMPORT_FETCH_COMMAND=import_fetch_web import_import"
 alias import="IMPORT_FETCH_COMMAND=import_fetch import_import"
 
 #
-# Download package to IMPORT_DIR
+# Download package to IMPORT_ROOT
 function import_get {
 	local rtn
 	rtn=0
 
 	while [[ $# -gt 0 ]] ; do
 		# Check overwrite
-		[[ "$IMPORT_VERBOSE" == "1" ]] && [[ -f "${IMPORT_DIR}/$1" ]] &&
+		[[ "$IMPORT_VERBOSE" == "1" ]] && [[ -f "${IMPORT_ROOT}/$1" ]] &&
 			echo "WARNING: OVERWRITTING $1" 1>&2
 
 		# Make directory
 		local dir base
-		dir="${IMPORT_DIR}/$1"
+		dir="${IMPORT_ROOT}/$1"
 		base=${dir##*/}
 		mkdir -p "${dir%$base}"
 
 		# Fetch
-		import_fetch_web "$1" 1> "${IMPORT_DIR}/$1"
+		import_fetch_web "$1" 1> "${IMPORT_ROOT}/$1"
 		if [[ $? -gt 0 ]]  ; then
 			[[ "$IMPORT_VERBOSE" == "1" ]] &&
 				echo "ERROR: FETCH RETURNED NON-ZERO ERROR STATUS" 1>&2
-			[[ -f "${IMPORT_DIR}/$1" ]] &&
-				rm "${IMPORT_DIR}/$1" 2> /dev/null
+			[[ -f "${IMPORT_ROOT}/$1" ]] &&
+				rm "${IMPORT_ROOT}/$1" 2> /dev/null
 			rtn=$(( $rtn + 1 ))
 		fi
 
@@ -259,8 +259,8 @@ elif which curl 1> /dev/null ; then
 elif which ncat 1> /dev/null ; then
 	# Bare (does not work)
 	function import_webget {
-		host=$( cut -d "/" -f 3 - <<< "$1" )
-		path=$( cut -d "/" -f 4- <<< "$1" )
+		host=$( echo "$1" | cut -d "/" -f 3 - )
+		path=$( echo "$1" | cut -d "/" -f 4- - )
 		printf "GET /$path HTTP/1.0\r\nHost: $host\r\nUser-Agent: import_webget\r\nConnection: close\r\n\r\n" | \
 		ncat -w 4 --ssl $host 443 | \
 		grep -x -F -A 1073741824 -e "" - 
@@ -280,7 +280,7 @@ fi
 # Grep?
 if which grep 1> /dev/null ; then
 	function import_check {
-		grep -xqFe "$1" - <<< "$IMPORT_ALREADY"
+		echo "$IMPORT_ALREADY" | grep -xqFe "$1" - 
 		return $?
 	}
 

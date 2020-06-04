@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tries each command until first error.
 import misc/default
-default	CYCLE_SELF=CYCLE	# TODO: OOP shell scripts?
+default CYCLE_SELF=CYCLE	# TODO: OOP shell scripts?
 default CYCLE_SEPARATOR=$( printf "\\31" )
 
 function cycle_add {

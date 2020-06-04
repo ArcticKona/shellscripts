@@ -52,15 +52,4 @@ function tcpc {
 	return $?
 }
 
-function tcpc_write {
-	printf "$text$@" 1> $TCPC_ROOT/$TCPC_SELF
-}
-
-function tcpc_read {
-	
-}
-
-function tcpc_new {
-	
-}
 

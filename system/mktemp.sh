@@ -1,12 +1,17 @@
-# 
-# Find mktemp
-if which mktemp 1> /dev/null ; then
+#!/bin/bash
+# Finds mktemp
+import misc/check
+import misc/default
+import script/cleanup
+default MKTEMP_INDEX="${$}${RANDOM}0000"
+
+if check_command ; then
 	function mktemp {
-		local type
+		local type file
 
 		# Capture?
 		if [[ "$capture" ]] ; then
-			eval "$capture=\$( $0 $1 )"
+			eval "$capture=\$( type=$type $0 $1 )"
 			return $?
 		fi
 
@@ -16,7 +21,12 @@ if which mktemp 1> /dev/null ; then
 			type=$1
 
 		# Exec.
-		$( which mktemp ) $type
+		file=$( $( which mktemp ) $type )
+		echo $file
+
+		# Delete on exit
+		cleanup_add "[[ -e $file ]] && rm -rf $file"
+
 		return $?
 	}
 
@@ -26,39 +36,39 @@ else
 
 		# Capture?
 		if [[ "$capture" ]] ; then
-			eval "$capture=\$( $0 $1 )"
+			eval "$capture=\$( type=$type $0 $1 )"
 			return $?
 		fi
 
-		# Find directory
+		# Find file name
+		MKTEMP_INDEX=$(( $MKTEMP_INDEX + 1 ))
 		if [[ -d /tmp ]] ; then
-			file="/tmp/$$$RANDOM$RANDOM$RANDOM"
+			file="/tmp/kona$MKTEMP_INDEX"
 		elif [[ -d /var/tmp ]] ; then
-			file="/var/tmp/$$$RANDOM$RANDOM$RANDOM"
+			file="/var/tmp/kona$MKTEMP_INDEX"
 		else
 			return 2
 		fi
 
-		# Make file
-		if [[ -f "$file" ]] ; then
-			if [[ "$RANDOM" ]] ; then
-				import_mktemp $1
-				return $?
-			else
-				return 2
-			fi
+		# Error if already exists
+		if [[ -e "$file" ]] ; then
+			return 1
 		fi
 
-		# Exec.
+		# Make it
 		echo "$file"
 		if [[ $type == d ]] || [[ "$1" == "-d" ]] ; then
 			mkdir "$file"
 		else
-			touch "$file"
+			true 1> "$file"
 		fi
+
+		# Delete on exit
+		cleanup_add "[[ -e $file ]] && rm -rf $file"
 
 		return $?
 	}
 
 fi
+
 
