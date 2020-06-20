@@ -1,24 +1,30 @@
 #!/bin/bash
 # bash HTTP Server. 2019 Arctic Kona. No rights reserved.
 # TODO:
-# *	Parse HTTP headers
+# *	TCP stream hijack support
 # *	Does not work well with large files
 # *	Operate keep-alives
 
 import misc/default
-import tcp/server
+import tcp/tcpd
 
 default HTTPD_ROOT=$( pwd )
 default HTTPD_PORT=8080
 default HTTPD_EXEC=httpd_index
 
+# Reports error
 function httpd_error {
 	printf "<HTML>\r\n\t<HEAD>\r\n\t\t<TITLE>\r\n\t\t\t$1\r\n\t\t</TITLE>\r\n\t</HEAD>\r\n\t<BODY>\r\n\t\t<H1>\r\n\t\t\t$1\r\n\t\t</H1>\r\n\t\t<HR/>\r\n\t\t<P>\r\n\t\t\tkona/2.5.0 @ $( hostname ):$HTTPD_PORT\r\n\t\t</P>\r\n\t</BODY>\r\n</HTML>\r\n"
 	HTTPD_STATUS="$1"
 	return 0
 }
 
+# Generates index
 function httpd_index {
+	local IFS
+	IFS="
+"
+
 	# Is it a file?
 	if [[ -f "$HTTPD_ROOT$HTTPD_URI" ]] ; then
 		cat "$HTTPD_ROOT$HTTPD_URI"
@@ -51,16 +57,19 @@ function httpd_index {
 }
 
 function httpd_httpd {
+	local line IFS
+	IFS="
+"
 	HTTPD_RESPONSE=""
 
 	# Generates an HTTP response
 	function respond {
-		echo "$HTTPD_VERSION $HTTPD_STATUS"
-		echo "Date: $( date -u +%a,\ %d\ %b\ %Y\ %H:%M:%S\ GMT )"
-		echo "Server: kona/2.5.0"
-		echo "Connection: close"
-		echo "Content-length: ${#HTTPD_RESPONSE}"
-		echo ""
+		printf "$HTTPD_VERSION $HTTPD_STATUS\r\n"
+		printf "Date: $( date -u +%a,\ %d\ %b\ %Y\ %H:%M:%S\ GMT )\r\n"
+		printf "Server: kona/2.5.0\r\n"
+		printf "Connection: close\r\n"
+		printf "Content-length: ${#HTTPD_RESPONSE}\r\n"
+		printf "\r\n"
 		echo "$HTTPD_RESPONSE"
 	}
 
@@ -76,8 +85,14 @@ function httpd_httpd {
 		return $?
 	fi
 
-	# Get headers	TODO: Implement
-	grep -m 1 -qxFe "" - 
+	# Get headers FIXME: insecure
+	while true ; do
+		read line
+		[[ $line ]] ||
+			break
+		line=${line/-/_}
+		eval "HTTPD_${line%%: *}=\${line#*: }"
+	done
 
 	# Execute!
 	HTTPD_STATUS=0
@@ -98,20 +113,13 @@ function httpd_httpd {
 # Wrapper
 function httpd {
 	local port exec
-	if [[ "$1" ]] ; then
-		HTTPD_PORT="$1"
-		shift
-	fi
-	if [[ "$1" ]] ; then
-		HTTPD_EXEC="$1"
-		shift
-	fi
-	[[ "$port" ]] &&
-		HTTPD_PORT=port
-	[[ "$exec" ]] &&
+	default port=$1 && shift
+	default exec=$1 && shift
+	default port=$HTTPD_PORT
+	[[ $exec ]] &&
 		HTTPD_EXEC="$exec"
 
-	tcpd $HTTPD_PORT httpd_httpd
+	exec=httpd_httpd port=$port tcpd
 	return $?
 }
 

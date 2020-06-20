@@ -28,7 +28,7 @@ function check_false {
 function check_number {
 	rtn=0
 	while [[ $# -gt 0 ]] ; do
-		grep -qxEe "-?[0-9]+(\.[0-9]+)?" - <<< "$1" ||
+		[ $1 -eq $1 ] ||
 			rtn=$(( $rtn + 1 ))
 		shift
 	done

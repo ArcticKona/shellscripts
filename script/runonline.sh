@@ -29,7 +29,7 @@ function runonline_enter {
 	cd "$root" ||
 		return $?
 	RUNONLINE_ROOT="$RUNONLINE_ROOT|$root|$path"
-	cleanup_add "[[ -e $root ]] && rm -rf $root"
+	cleanup_add "[[ ! -e $root ]] || rm -rf $root"
 	return 0
 }
 

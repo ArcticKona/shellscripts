@@ -25,7 +25,7 @@ if check_command ; then
 		echo $file
 
 		# Delete on exit
-		cleanup_add "[[ -e $file ]] && rm -rf $file"
+		cleanup_add "[[ ! -e $file ]] || rm -rf $file"
 
 		return $?
 	}
@@ -64,7 +64,7 @@ else
 		fi
 
 		# Delete on exit
-		cleanup_add "[[ -e $file ]] && rm -rf $file"
+		cleanup_add "[[ ! -e $file ]] || rm -rf $file"
 
 		return $?
 	}

@@ -13,13 +13,14 @@ log_warn "TCP server not secure! Do not expose to untrusted networks or users."
 # Use ncat if possible
 if check_command ncat ; then
 	function tcpd_tcpd {
-		ncat -lkp$1 -c "exec $TCPD_SHELL -c \"\$TCPD_EXEC\""
+		export exec=$2
+		ncat -lkp$1 -c "exec $TCPD_SHELL -c \"\$exec\""
 	}
 
-# busybox nc? FIXME: English only FIXME: busybox netcat
+# busybox nc? FIXME: English only
 elif check_command busybox && [[ $( busybox nc || true ) != "nc: applet not found" ]] ; then
 	TCPD_TEMP=$( busybox nc -e || true )
-	TCPD_TEMP=$( head -n 1 - <<< "$TCPD_TEMP" )
+	echo "$TCPD_TEMP" | read TCPD_TEMP
 	[[ "$TCPD_TEMP" == "nc: invalid option -- 'e'" ]] &&
 		log_fatal "Your version of netcat doesn not support command execution"
 
@@ -40,7 +41,9 @@ fi
 
 # Get shell
 if [[ "$TCPD_SHELL" == "" ]] ; then
-	if check_command bash ; then
+	if [[ $SHELL ]] ; then
+		TCPD_SHELL=$SHELL
+	elif check_command bash ; then
 		TCPD_SHELL=bash
 	elif check_command ash ; then
 		TCPD_SHELL=ash
@@ -54,20 +57,20 @@ function tcpd {
 	# Get arguments
 	local port exec
 	default port=$1 && shift
-	sefault exec=$1 && shift
+	default exec=$1 && shift
 	default port=$TCPD_PORT
 	default exec=$TCPD_EXEC
 
 	# Include all functions, variables, and aliases
 	exec="
+	shopt -s expand_aliases
+	shopt -s extglob
 	$( set )
 	$( alias )
 	$exec
 	"
 
 	# Serve
-	export TCPD_PORT=$port
-	export TCPD_EXEC="$exec"
 	tcpd_tcpd $port "$exec"
 
 	return $?
