@@ -48,6 +48,7 @@ function decompress {
 	# IDK :(
 	else
 		log_warn "I dont know what file type this is"
+		( printf $head ; cat - )
 		return 3
 
 	fi
