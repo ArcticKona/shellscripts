@@ -6,14 +6,15 @@ import system/mktemp
 # Execute command in temporary directory
 function runonline {
 	local exec
-	runonline_enter
+	runonline_enter ||
+		return $?
 
 	if [[ $# -gt 0 ]] ; then
 		( $@ )
 	elif [[ $exec ]] ; then
 		( eval "$exec" )
 	else
-		return 3
+		return 0
 	fi
 
 	runonline_leave

@@ -3,7 +3,6 @@
 
 #
 # TODO
-# *	Using tempfile and other structures are somewhat inefficient, do fix
 # *	Import_get does not work in directories, and is non-recursive
 
 #
@@ -19,7 +18,7 @@
 
 # Verbose?
 [[ "$IMPORT_VERBOSE" ]] ||
-	IMPORT_VERBOSE=1
+	IMPORT_VERBOSE=0
 
 # Other variables
 IMPORT_ALREADY=""
@@ -31,26 +30,6 @@ IFS='
 '
 shopt -s expand_aliases
 shopt -s extglob
-
-# mktemp?
-if which mktemp 1> /dev/null ; then
-	function import_mktemp {
-		IMPORT_TEMPFILE=$( mktemp )
-		if [[ $? -gt 0 ]] ; then
-			echo "FATAL: CANNOT USE TEMPFILE" 1>&2
-			exit 3
-		fi
-	}
-
-else
-	function import_mktemp {
-		IMPORT_TEMPFILE="/tmp/$$.tmp"
-		if [[ -f "$IMPORT_TEMPFILE" ]] || ! touch "$IMPORT_TEMPFILE" ; then
-			echo "FATAL: CANNOT USE TEMPFILE" 1>&2
-			exit 3
-		fi
-	}
-fi
 
 #
 # Fetch package source code
@@ -146,11 +125,8 @@ function import_fetch {
 
 # Import using suggested fetch command
 function import_import {
-
 	local rtn
 	rtn=0
-	local IMPORT_TEMPFILE
-	import_mktemp
 
 	# Error if too deep
 	if [[ $IMPORT_DEPTH -gt 32 ]] ; then
@@ -172,15 +148,27 @@ function import_import {
 		fi
 
 		# Fetch
-		$IMPORT_FETCH_COMMAND "$1" 1> "$IMPORT_TEMPFILE"
-		rtn=$(( $rtn + $? ))
+		IMPORT_TEMPFILE=$( $IMPORT_FETCH_COMMAND "$1" )
+		if [[ $? -gt 0 ]] ; then
+			echo "WARNING: CANNOT FIND PACKAGE $1" 1>&2
+			rtn=$(( $rtn + 1 ))
+			shift
+			continue
+		fi
 
 		# Record (even failed attempts)
 		IMPORT_ALREADY="$IMPORT_ALREADY
 $1"
 
 		# Load
-		IMPORT_NAME="$1" IMPORT_DEPTH=$(( $IMPORT_DEPTH + 1 )) source "$IMPORT_TEMPFILE"
+		function import_tempfile {
+			local IMPORT_DEPTH=$(( $IMPORT_DEPTH + 1 ))
+			eval "$IMPORT_TEMPFILE"
+			return $?
+		}
+		import_tempfile
+
+		# Check errors
 		if [[ $? -gt 0 ]] ; then
 			echo "WARNING: $1 RETURNED NON-ZERO EXIT CODE" 1>&2
 			rtn=$(( $rtn + 1 ))
@@ -191,19 +179,25 @@ $1"
 		shift
 	done
 
-	rm "$IMPORT_TEMPFILE"
 	return $rtn
 }
 
 # Just from disk
-alias import_file="IMPORT_FETCH_COMMAND=import_fetch_file import_import"
+function import_file {
+	local IFS=
+	IMPORT_FETCH_COMMAND=import_fetch_file import_import $@
+}
 
 # Just from web
-alias import_web="IMPORT_FETCH_COMMAND=import_fetch_web import_import"
-
+function import_web {
+	local IFS=
+	IMPORT_FETCH_COMMAND=import_fetch_web import_import $@
+}
 # Use both
-alias import="IMPORT_FETCH_COMMAND=import_fetch import_import"
-
+function import {
+	local IFS=
+	IMPORT_FETCH_COMMAND=import_fetch import_import $@
+}
 #
 # Download package to IMPORT_ROOT
 function import_get {

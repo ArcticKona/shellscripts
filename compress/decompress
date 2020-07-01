@@ -1,0 +1,58 @@
+#!/bin/bash
+# Decompresses stdin to stdout
+import misc/check
+import log/log
+import system/cat
+
+if ! check_command gunzip ; then
+	function gunzip {
+		local IFS=
+		check_command gzip ||
+			log_fatal "gzip not found"
+		gzip -d $@
+		return
+	}
+fi
+
+if ! check_command bunzip2 ; then
+	function bunzip2 {
+		local IFS=
+		check_command bzip2 ||
+			log_fatal "bzip2 not found"
+		bzip2 -d $@
+		return
+	}
+fi
+
+function decompress {
+	local head
+	read -n 4 head
+
+	# Is it gzip?
+	if [[ ${head:0:2} == $( printf '\x1F\x8B' ) ]] ; then
+		( printf $head ; cat - ) | \
+			gunzip -c -
+
+	# Is it bzip2?
+	elif [[ ${head:0:3} == BZh ]] ; then
+		( printf $head ; cat - ) | \
+			bunzip2 -c -
+
+	# Is it xz?
+	elif [[ ${head:0:4} == $( printf '\xFD7zX' ) ]] ; then
+		check_command xz ||
+			log_fatal "xz not found"
+		( printf $head ; cat - ) | \
+			xz -dc -
+
+	# IDK :(
+	else
+		log_warn "I dont know what file type this is"
+		return 3
+
+	fi
+
+	return $?
+}
+
+
