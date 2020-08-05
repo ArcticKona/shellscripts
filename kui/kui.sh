@@ -3,7 +3,7 @@
 import check/system
 import misc/default
 import kui/zenity
-import kui/dialog
+#import kui/dialog
 import kui/cli
 UI_API="log_fatal"
 
