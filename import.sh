@@ -85,8 +85,8 @@ function import_fetch_web {
 		true
 
 	# So it's a web directory?
-	elif import_webget "$IMPORT_URI/$1/index.lst" 1> "$IMPORT_TEMPFILE" ; then
-		for file in $( cat "$IMPORT_TEMPFILE" ) ; do
+	elif IMPORT_TEMPFILE=$( import_webget "$IMPORT_URI/$1/index.lst" ) ; then
+		for file in $IMPORT_TEMPFILE ; do
 			if [[ "${file##*.}" == "" ]] || [[ "${file##*.}" == "sh" ]] || [[ "${file##*.}" == "bash" ]] ; then
 				file=${file//\"/\\\"}
 				file=${file//\$/\\\$}

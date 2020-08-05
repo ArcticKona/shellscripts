@@ -3,6 +3,7 @@
 import misc/check
 import misc/default
 import script/cleanup
+import script/except
 default MKTEMP_INDEX="${$}${RANDOM}0000"
 
 if check_command ; then
@@ -22,12 +23,19 @@ if check_command ; then
 
 		# Exec.
 		file=$( $( which mktemp ) $type )
+		rtn=$?
+		if [[ $rtn -gt 0 ]] ; then
+			throw "cant mktemp"
+			return $rtn
+		fi
+
+		# Report
 		echo $file
 
 		# Delete on exit
-		cleanup_add "[[ ! -e $file ]] || rm -rf $file"
+		cleanup_add "[[ -e $file ]] && rm -rf $file"
 
-		return $?
+		return 0
 	}
 
 else
@@ -47,11 +55,13 @@ else
 		elif [[ -d /var/tmp ]] ; then
 			file="/var/tmp/kona$MKTEMP_INDEX"
 		else
+			throw "cant mktemp"
 			return 2
 		fi
 
 		# Error if already exists
 		if [[ -e "$file" ]] ; then
+			throw "mktemp already exists"
 			return 1
 		fi
 
@@ -62,11 +72,14 @@ else
 		else
 			true 1> "$file"
 		fi
+		rtn=$?
+		[[ $rtn -gt 0 ]] &&
+			throw "cant mktemp"
 
 		# Delete on exit
 		cleanup_add "[[ ! -e $file ]] || rm -rf $file"
 
-		return $?
+		return $rtn
 	}
 
 fi

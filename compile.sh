@@ -15,10 +15,11 @@ fi
 
 # Special headers
 function compile_header {
-	printf '#!/bin/bash\n@gOTo :windows\r\necho \"Above \\"@gOTo\\" can be ignored.\"\necho "This script was auto-generated."\nclear\n'
+	printf '#!/bin/bash\n\r\n@gOTo :windows4c42170f630f34fb075276e682c66008\r\necho \"Above \\"@gOTo\\" can be ignored.\"\necho "This script was auto-generated."\necho "Script libraries and utilities by Kona Arctic"\nclear\n'
 	import_fetch import
 	cat -
-	# TODO: Finish
+	printf '\r\n:windows4c42170f630f34fb075276e682c66008\r\necho Not yet available for Windows(tm)\r\npause\r\n\r\n'
+	# TODO: Download busybox + bash on Windows
 }
 
 # Do for imports

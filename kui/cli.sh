@@ -1,8 +1,9 @@
 #!/bin/bash
 # Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
-import misc/default
-import check/
+import check/sys
+import check/var
 import log/log
+import misc/default
 import term/font
 
 # Display simple information

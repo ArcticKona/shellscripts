@@ -1,10 +1,10 @@
 #!/bin/bash
 # Simple User Interface API. Copyright (c) 2020 Arctic Kona. No Rights Reserved.
-import check/
+import check/system
 import misc/default
-import ui/zenity
-import ui/dialog
-import ui/cli
+import kui/zenity
+import kui/dialog
+import kui/cli
 UI_API="log_fatal"
 
 function ui_info {
@@ -121,23 +121,71 @@ $line"
 
 # If DISPLAY is set and zenity is installed, use zenity
 if [[ "$DISPLAY" ]] && check_command zenity ; then
-	alias ui_info="UI_API=ui_zenity_info ui_info"
-	alias ui_warn="UI_API=ui_zenity_warn ui_warn"
-	alias ui_text="UI_API=ui_zenity_text ui_text"
-	alias ui_entry="UI_API=ui_zenity_entry ui_entry"
-	alias ui_edit="UI_API=ui_zenity_edit ui_edit"
-	alias ui_list="UI_API=ui_zenity_list ui_list"
+	function kui_info {
+		local IFS=
+		UI_API=ui_zenity_info ui_info $@
+		return $?
+	}
+	function kui_warn {
+		local IFS=
+		UI_API=ui_zenity_warn ui_warn $@
+		return $?
+	}
+	function kui_text {
+		local IFS=
+		UI_API=ui_zenity_text ui_text $@
+		return $?
+	}
+	function kui_entry {
+		local IFS=
+		UI_API=ui_zenity_entry ui_entry $@
+		return $?
+	}
+	function kui_edit {
+		local IFS=
+		UI_API=ui_zenity_edit ui_edit $@
+		return $?
+	}
+	function kui_list {
+		local IFS=
+		UI_API=ui_zenity_list ui_list $@
+		return $?
+	}
 
 # TODO: Use dialog
 
 # Finally, use CLI
 else
-	alias ui_info="UI_API=ui_cli_info ui_info"
-	alias ui_warn="UI_API=ui_cli_warn ui_warn"
-	alias ui_text="UI_API=ui_cli_text ui_text"
-	alias ui_entry="UI_API=ui_cli_entry ui_entry"
-	alias ui_edit="UI_API=ui_cli_edit ui_edit"
-	alias ui_list="UI_API=ui_cli_list ui_list"
+	function kui_info {
+		local IFS=
+		UI_API=ui_cli_info ui_info $@
+		return $?
+	}
+	function kui_warn {
+		local IFS=
+		UI_API=ui_cli_warn ui_warn $@
+		return $?
+	}
+	function kui_text {
+		local IFS=
+		UI_API=ui_cli_text ui_text $@
+		return $?
+	}
+	function kui_entry {
+		local IFS=
+		UI_API=ui_cli_entry ui_entry $@
+		return $?
+	}
+	function kui_edit {
+		local IFS=
+		UI_API=ui_cli_edit ui_edit $@
+		return $?
+	}
+	function kui_list {
+		local IFS=
+		UI_API=ui_cli_list ui_list $@
+		return $?
+	}
 
 fi
 

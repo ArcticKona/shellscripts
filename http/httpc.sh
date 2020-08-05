@@ -21,13 +21,16 @@ elif check_command wget ; then
 	function httpc_httpc {
 		local IFS="
 "
-		if [[ $method == GET ]] ; then
+		if [[ $method == GET ]] || [[ $method == HEAD ]] || [[ $method == DELETE ]] ; then
 			wget -U $user_agent -qO - "$url" $@
 		else
 			wget -U $user_agent --method=$method -i - -qO - "$url" $@	# May not work in all versions of wget
 		fi
 		return $?
 	}
+
+# Busybox wget?
+# TODO: Implement
 
 # TODO: Use tcpc
 else
