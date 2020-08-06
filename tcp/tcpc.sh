@@ -26,7 +26,9 @@ elif check_command nc ; then
 	}
 
 else
-	log_fatal "cannot find netcat program"
+	function tcp_tcp {
+		log_fatal "cannot find netcat program"
+	}
 
 fi
 
