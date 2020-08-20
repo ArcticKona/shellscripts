@@ -28,7 +28,7 @@ function httpd_index {
 	# Is it a file?
 	if [[ -f "$HTTPD_ROOT$HTTPD_URI" ]] ; then
 		cat "$HTTPD_ROOT$HTTPD_URI"
-		if test $? -ne 0 ; then
+		if [[ $? -gt 0 ]]; then
 			httpd_error "500 Internal Server Error"
 			return $?
 		fi
@@ -60,37 +60,29 @@ function httpd_httpd {
 	local line IFS
 	IFS="
 "
-	HTTPD_RESPONSE=""
-
-	# Generates an HTTP response
-	function respond {
-		printf "$HTTPD_VERSION $HTTPD_STATUS\r\n"
-		printf "Date: $( date -u +%a,\ %d\ %b\ %Y\ %H:%M:%S\ GMT )\r\n"
-		printf "Server: kona/2.5.0\r\n"
-		printf "Connection: close\r\n"
-		printf "Content-length: ${#HTTPD_RESPONSE}\r\n"
-		printf "\r\n"
-		echo "$HTTPD_RESPONSE"
-	}
+	HTTPD_RESPONSE=
 
 	# Get request
-	HTTPD_TEMP=$( head -n 1 - )
-	HTTPD_METHOD=$( cut -d " " -f 1 - <<< "$HTTPD_TEMP" )
-	HTTPD_URI=$( cut -d " " -f 2 - <<< "$HTTPD_TEMP" )
-	HTTPD_VERSION=$( cut -d " " -f 3 - <<< "$HTTPD_TEMP" )
-	if [[ "$HTTPD_VERSION" == "" ]] ; then	# Bad request
-		HTTPD_VERSION="HTTP/1.0"
-		HTTPD_STATUS=400
-		respond
+	read line
+	HTTPD_VERSION=${line##* }
+	HTTPD_METHOD=${line%% *}
+	line=${line% *}
+	HTTPD_URI=${line##* }
+	if [[ ${HTTPD_VERSION:0:4} != HTTP ]] ; then	# Bad request
+		printf "HTTP/1.0 400 Bad Request\r\Date: $( date -u +%a,\ %d\ %b\ %Y\ %H:%M:%S\ GMT )\r\nContent-length: 0\r\n\r\n"
 		return $?
 	fi
 
-	# Get headers FIXME: insecure
+	# Get headers
 	while true ; do
-		read line
+		read $line ||
+			break
+		line=${line/$( printf \\r )/}
+		line=${line//-/_}
+		[[ $line =~ "[a-zA-Z0-9-]" ]] ||
+			continue
 		[[ $line ]] ||
 			break
-		line=${line/-/_}
 		eval "HTTPD_${line%%: *}=\${line#*: }"
 	done
 
@@ -98,15 +90,21 @@ function httpd_httpd {
 	HTTPD_STATUS=0
 	HTTPD_RESPONSE=$( $HTTPD_EXEC )
 	rtn=$?
-	if [[ $HTTPD_STATUS == "0" ]] ; then	# Guess an exit status
+	if [[ $HTTPD_STATUS -eq 0 ]] ; then	# Guess an exit status
 		[[ $rtn -eq 0 ]] &&
 			HTTPD_STATUS=200 ||
 			HTTPD_STATUS=500
 	fi
 
 	# Execute response
-	respond
-	
+	printf "HTTP/1.0 $HTTPD_STATUS\r\n"
+	printf "Date: $( date -u +%a,\ %d\ %b\ %Y\ %H:%M:%S\ GMT )\r\n"
+	printf "Server: kona/2.5.0\r\n"
+	printf "Connection: close\r\n"
+	printf "Content-length: ${#HTTPD_RESPONSE}\r\n"
+	printf "\r\n"
+	echo $HTTPD_RESPONSE
+
 	return $?
 }
 
