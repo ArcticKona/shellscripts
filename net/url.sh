@@ -1,5 +1,6 @@
 #!/bin/bash
-# URL parser. 2020 Arctic Kona. No rights reserved.
+# URL parser. 2020 Arctic Kona. Some rights reserved.
+import string/match	# TODO: Use this library instead of grep
 
 function url_parse {
 	local url proto host path port capture
